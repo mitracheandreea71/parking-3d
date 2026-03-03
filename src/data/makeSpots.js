@@ -13,7 +13,7 @@ export function makeSpots() {
     w: 2.5,
     h: 5,
     rot: 0,
-    kind: i % 10 === 1 ? "EV" : i % 9 === 2 ? "DIS" : "STD",
+    kind: "STD",
     status: "free",
   }));
 
@@ -24,7 +24,7 @@ export function makeSpots() {
     w: 2.5,
     h: 5,
     rot: 0,
-    kind: i % 11 === 3 ? "EV" : i % 8 === 4 ? "DIS" : "STD",
+    kind: "STD",
     status: "free",
   }));
 

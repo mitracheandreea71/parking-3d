@@ -25,8 +25,7 @@ export const makeSpots = () => {
             : Math.random() > 0.5
             ? "occupied"
             : "reserved",
-        kind:
-          Math.random() > 0.85 ? (Math.random() > 0.5 ? "EV" : "DIS") : "STD",
+        kind: "STD",
       });
     }
 
@@ -45,8 +44,7 @@ export const makeSpots = () => {
             : Math.random() > 0.5
             ? "occupied"
             : "reserved",
-        kind:
-          Math.random() > 0.85 ? (Math.random() > 0.5 ? "EV" : "DIS") : "STD",
+        kind: "STD",
       });
     }
   }

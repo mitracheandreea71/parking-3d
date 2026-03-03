@@ -14,8 +14,6 @@ export const ROOF = "#404040";
 export const RAIL = "#666666";
 export const LINE = "#ffff00";
 export const SELECT_FILL = "#00ff00";
-export const EV_FILL = "#3b82f6";
-export const DIS_FILL = "#ef4444";
 
 export const colorForStatus = (status) => {
   if (status === "free") return "#10b981";
