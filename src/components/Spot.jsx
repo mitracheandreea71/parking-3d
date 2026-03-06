@@ -1,19 +1,12 @@
 import { useMemo } from "react";
 import { Html, Edges } from "@react-three/drei";
-import {
-  EV_FILL, // rămân importurile dacă le mai folosești în altă parte; poți șterge EV_FILL/DIS_FILL din config dacă devin nefolosite
-  DIS_FILL,
-  LINE,
-  SELECT_FILL,
-  colorForStatus,
-} from "../config";
+import { LINE, SELECT_FILL, colorForStatus } from "../config";
 
 export default function Spot({
   levelY,
   spot,
   isSelected,
   onSelect,
-  onToggle,
   opacity = 1,
 }) {
   const pos = useMemo(
@@ -25,22 +18,15 @@ export default function Spot({
 
   return (
     <group>
-      {/* contur alb (patru linii) */}
+      {/* contur alb */}
       <MarkingRect
         position={[pos[0], levelY + 0.005, pos[2]]}
         w={spot.w}
         h={spot.h}
       />
 
-      {/* dale status */}
-      <mesh
-        position={pos}
-        scale={scale}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-      >
+      {/* dala colorată după status (din backend) */}
+      <mesh position={pos} scale={scale}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
           color={colorForStatus(spot.status)}
@@ -51,7 +37,7 @@ export default function Spot({
         />
       </mesh>
 
-      {/* selecție exact pe loc */}
+      {/* selecție */}
       {isSelected && (
         <group>
           <mesh position={[pos[0], levelY + 0.015, pos[2]]}>
@@ -70,12 +56,12 @@ export default function Spot({
         </group>
       )}
 
-      {/* plan invizibil de click (hitbox exact) */}
+      {/* hitbox pentru click/select */}
       <mesh
         position={[pos[0], levelY + 0.02, pos[2]]}
         onClick={(e) => {
           e.stopPropagation();
-          onSelect();
+          onSelect?.();
         }}
       >
         <boxGeometry args={[spot.w, 0.02, spot.h]} />

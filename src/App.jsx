@@ -1,44 +1,90 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Html, Edges, Text } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 
 import UiOverlay from "./components/UiOverlay";
 import ParkingLevel from "./components/ParkingLevel";
-import { CurvedLinkRamp } from "./components/Ramp";
-import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR, SLAB_T } from "./config";
-import { makeSpots } from "./data/makeSpots";
+import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
+
+import { apiGet } from "./api";
+import { toLocalISOStringNoZ } from "./time";
+
 export default function App() {
   const [levels, setLevels] = useState(
-    Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: makeSpots() }))
+    Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] }))
   );
+
   const [activeLevel, setActiveLevel] = useState(0);
   const [isolate, setIsolate] = useState(false);
-  const [selected, setSelected] = useState(null); // {level,id}
+  const [selected, setSelected] = useState(null); // { level, id } unde id = code (ex: L1)
 
-  const toggleStatus = (levelId, spotId) => {
-    setLevels((prev) =>
-      prev.map((lvl) =>
-        lvl.id !== levelId
-          ? lvl
-          : {
-              ...lvl,
-              spots: lvl.spots.map((s) =>
-                s.id === spotId
-                  ? {
-                      ...s,
-                      status:
-                        s.status === "free"
-                          ? "reserved"
-                          : s.status === "reserved"
-                          ? "occupied"
-                          : "free",
-                    }
-                  : s
-              ),
-            }
-      )
-    );
-  };
+  // interval selectat (local time)
+  const [start, setStart] = useState(() => new Date());
+  const [end, setEnd] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
+
+  // 1) Load layout (spots) din DB
+  useEffect(() => {
+    (async () => {
+      const spots = await apiGet("/parking/spots");
+
+      const grouped = Array.from({ length: LEVELS }, (_, i) => ({
+        id: i,
+        spots: [],
+      }));
+
+      for (const s of spots) {
+        // backend: levelId este 1..3 => în UI: 0..2
+        const levelIndex = (s.levelId ?? 1) - 1;
+        if (!grouped[levelIndex]) continue;
+
+        grouped[levelIndex].spots.push({
+          // păstrăm tot ce vine din API (x,y,z,w,h,rot)
+          ...s,
+
+          // IMPORTANT: în proiectul tău, Spot/label/selection folosesc spot.id
+          // noi îl setăm la cod (L1, R2 etc.)
+          id: s.code,
+
+          // păstrăm spotId numeric pentru mapare status
+          spotId: s.spotId,
+
+          // status inițial
+          status: "free",
+        });
+      }
+
+      setLevels(grouped);
+    })().catch(console.error);
+  }, []);
+
+  // 2) Load availability când se schimbă intervalul
+  useEffect(() => {
+    // dacă încă nu avem spoturi, nu apelăm
+    if (!levels.some((lvl) => lvl.spots.length > 0)) return;
+
+    (async () => {
+      const startStr = toLocalISOStringNoZ(start); // FĂRĂ Z (timezone fix)
+      const endStr = toLocalISOStringNoZ(end);
+
+      const avail = await apiGet(
+        `/parking/availability?start=${encodeURIComponent(
+          startStr
+        )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`
+      );
+
+      const map = new Map(avail.map((a) => [a.spotId, a.status]));
+
+      setLevels((prev) =>
+        prev.map((lvl) => ({
+          ...lvl,
+          spots: lvl.spots.map((s) => ({
+            ...s,
+            status: map.get(s.spotId) ?? "free",
+          })),
+        }))
+      );
+    })().catch(console.error);
+  }, [start, end, levels]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
@@ -49,6 +95,10 @@ export default function App() {
         setIsolate={setIsolate}
         selected={selected}
         onClear={() => setSelected(null)}
+        start={start}
+        end={end}
+        setStart={setStart}
+        setEnd={setEnd}
       />
 
       <Canvas
@@ -62,10 +112,10 @@ export default function App() {
           distance={70}
         />
 
-        {/* Nivele */}
         {levels.map((lvl, idx) => {
           const y = idx * FLOOR_CLEAR;
           const visible = isolate ? idx === activeLevel : true;
+
           return (
             <ParkingLevel
               key={idx}
@@ -75,8 +125,10 @@ export default function App() {
               visible={visible}
               dim={!isolate && idx !== activeLevel}
               selected={selected}
-              setSelected={(id) => setSelected({ level: idx, id })}
-              onToggle={(id) => toggleStatus(idx, id)}
+              // aici setăm selection cu code-ul spotului (s.id = "L1")
+              setSelected={(spotCode) =>
+                setSelected({ level: idx, id: spotCode })
+              }
             />
           );
         })}

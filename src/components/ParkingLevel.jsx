@@ -84,6 +84,7 @@ function ExteriorWalls({
           {mat}
         </mesh>
       )}
+
       <mesh
         castShadow
         receiveShadow
@@ -93,6 +94,7 @@ function ExteriorWalls({
         <boxGeometry args={[FLOOR_H, wallHeight, wallThickness]} />
         {mat}
       </mesh>
+
       {openingSide === "right" && openingWidth > 0 ? (
         (() => {
           const half = openingWidth / 2;
@@ -126,6 +128,14 @@ function ExteriorWalls({
   );
 }
 
+function spotNumberLabel(spotId) {
+  // pentru "L1", "R12" -> "1", "12"
+  // dacă nu e formatul ăsta, arată tot id-ul
+  if (typeof spotId !== "string") return String(spotId);
+  const m = spotId.match(/\d+/);
+  return m ? m[0] : spotId;
+}
+
 function ParkingSpotNumbers({ y, spots }) {
   return (
     <group>
@@ -145,7 +155,7 @@ function ParkingSpotNumbers({ y, spots }) {
             color="white"
             anchorX="center"
           >
-            {spot.id.toString().split("-")[1]}
+            {spotNumberLabel(spot.id)}
           </Text>
         );
       })}
@@ -337,10 +347,10 @@ export default function ParkingLevel({
   dim,
   selected,
   setSelected,
-  onToggle,
 }) {
   if (!visible) return null;
   const opacity = dim ? 0.7 : 1;
+
   const [wallTexture, hazardTexture, arrowTexture] = useTexture([
     "/textures/concrete_wall.jpg",
     "/textures/hazard_stripes.jpg",
@@ -354,7 +364,6 @@ export default function ParkingLevel({
   const GATE_OFFSET_X = 2.0;
   const LANE_HALF_GAP = 3.0;
 
-  // Parametri rampei
   const RAMP_START_X = FLOOR_W - 25;
   const RAMP_LENGTH = 12;
   const RAMP_WIDTH = 7.2;
@@ -363,7 +372,6 @@ export default function ParkingLevel({
   const RAMP_MIN_Z = RAMP_CENTER_Z - RAMP_WIDTH / 2;
   const RAMP_MAX_Z = RAMP_CENTER_Z + RAMP_WIDTH / 2;
 
-  // Podea cu gol pentru rampă (doar la etajele 1+)
   const renderFloor = () => {
     if (index === 0) {
       return (
@@ -376,13 +384,11 @@ export default function ParkingLevel({
 
     return (
       <group>
-        {/* Stânga rampei */}
         <mesh receiveShadow position={[RAMP_START_X / 2, y, FLOOR_H / 2]}>
           <boxGeometry args={[RAMP_START_X, SLAB_T, FLOOR_H]} />
           <meshStandardMaterial color={ASPHALT} roughness={0.8} />
         </mesh>
 
-        {/* Dreapta rampei */}
         {RAMP_START_X + RAMP_LENGTH < FLOOR_W && (
           <mesh
             receiveShadow
@@ -401,7 +407,6 @@ export default function ParkingLevel({
           </mesh>
         )}
 
-        {/* Fața rampei */}
         <mesh
           receiveShadow
           position={[RAMP_START_X + RAMP_LENGTH / 2, y, RAMP_MIN_Z / 2]}
@@ -410,7 +415,6 @@ export default function ParkingLevel({
           <meshStandardMaterial color={ASPHALT} roughness={0.8} />
         </mesh>
 
-        {/* Spatele rampei */}
         <mesh
           receiveShadow
           position={[
@@ -430,7 +434,6 @@ export default function ParkingLevel({
     <group>
       {renderFloor()}
 
-      {/* Plafon doar la etajele 2+ */}
       {index > 1 && (
         <mesh position={[FLOOR_W / 2, y + FLOOR_CLEAR, FLOOR_H / 2]}>
           <boxGeometry args={[FLOOR_W, SLAB_T, FLOOR_H]} />
@@ -438,7 +441,6 @@ export default function ParkingLevel({
         </mesh>
       )}
 
-      {/* Pereți exteriori */}
       <ExteriorWalls
         y={y + SLAB_T}
         opacity={opacity}
@@ -448,24 +450,20 @@ export default function ParkingLevel({
         openingCenter={RIGHT_OPENING_CENTER}
       />
 
-      {/* RAMPA + LINIA PUNCTATĂ — DOAR LA ETAJELE 0 ȘI 1 */}
       {index < 2 && (
-        <>
-          <Ramp
-            axis="x"
-            dir={1}
-            y={y + 0.1}
-            start={[RAMP_START_X, RAMP_CENTER_Z]}
-            length={RAMP_LENGTH}
-            width={RAMP_WIDTH}
-            rise={RAMP_RISE}
-            color={ASPHALT}
-            showCenterLine={true}
-          />
-        </>
+        <Ramp
+          axis="x"
+          dir={1}
+          y={y + 0.1}
+          start={[RAMP_START_X, RAMP_CENTER_Z]}
+          length={RAMP_LENGTH}
+          width={RAMP_WIDTH}
+          rise={RAMP_RISE}
+          color={ASPHALT}
+          showCenterLine={true}
+        />
       )}
 
-      {/* Intrare doar la parter */}
       {index === 0 && (
         <group>
           <mesh
@@ -481,6 +479,7 @@ export default function ParkingLevel({
             />
             <meshStandardMaterial color={ASPHALT} roughness={0.8} />
           </mesh>
+
           <mesh
             position={[
               FLOOR_W + GATE_OFFSET_X - 0.5,
@@ -501,6 +500,7 @@ export default function ParkingLevel({
             <boxGeometry args={[1.2, 0.01, 0.08]} />
             <meshStandardMaterial color="white" />
           </mesh>
+
           <EntranceGate
             position={[FLOOR_W + 2, y + SLAB_T, RIGHT_OPENING_CENTER - 7.5]}
             yaw={Math.PI * 1.5}
@@ -520,7 +520,6 @@ export default function ParkingLevel({
         </group>
       )}
 
-      {/* Coloane */}
       <Columns
         y={y + SLAB_T}
         opacity={opacity}
@@ -532,16 +531,9 @@ export default function ParkingLevel({
         aisleBuffer={0.9}
       />
 
-      {/* Marcaje benzi */}
       <LaneMarkings y={y + SLAB_T / 2 + 0.01} />
-
-      {/* Numere locuri */}
-      <ParkingSpotNumbers y={y} spots={spots} />
-
-      {/* Săgeți circulație */}
       <TrafficArrows y={y + SLAB_T / 2 + 0.1} texture={arrowTexture} />
 
-      {/* Locuri de parcare */}
       {spots.map((s) => (
         <Spot
           key={`${index}-${s.id}`}
@@ -551,7 +543,6 @@ export default function ParkingLevel({
             selected && selected.level === index && selected.id === s.id
           }
           onSelect={() => setSelected(s.id)}
-          onToggle={() => onToggle(s.id)}
           opacity={opacity}
         />
       ))}
