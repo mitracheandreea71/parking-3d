@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { api } from "./lib/api";
 
 function getToken() {
   const url = new URL(window.location.href);
@@ -12,14 +12,12 @@ function getToken() {
 
 export async function apiGet(path) {
   const token = getToken();
-
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${text}`);
-  }
-  return res.json();
+  return api(path, { method: "GET", token });
 }
+
+export async function apiPost(path, body) {
+  const token = getToken();
+  return api(path, { method: "POST", token, body });
+}
+
+export { getToken };

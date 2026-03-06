@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
@@ -8,6 +8,19 @@ import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
 
 import { apiGet } from "./api";
 import { toLocalISOStringNoZ } from "./time";
+
+function readQueryDate(paramName) {
+  try {
+    const url = new URL(window.location.href);
+    const v = url.searchParams.get(paramName);
+    if (!v) return null;
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
 
 export default function App() {
   const [levels, setLevels] = useState(
@@ -19,8 +32,21 @@ export default function App() {
   const [selected, setSelected] = useState(null); // { level, id } unde id = code (ex: L1)
 
   // interval selectat (local time)
-  const [start, setStart] = useState(() => new Date());
-  const [end, setEnd] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
+  const [start, setStart] = useState(
+    () => readQueryDate("start") ?? new Date()
+  );
+  const [end, setEnd] = useState(
+    () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000)
+  );
+
+  // convenient map from code -> spot (includes numeric spotId)
+  const spotByCode = useMemo(() => {
+    const m = new Map();
+    for (const lvl of levels) {
+      for (const s of lvl.spots) m.set(s.id, s);
+    }
+    return m;
+  }, [levels]);
 
   // 1) Load layout (spots) din DB
   useEffect(() => {
@@ -84,7 +110,30 @@ export default function App() {
         }))
       );
     })().catch(console.error);
-  }, [start, end, levels]);
+  }, [start, end]);
+
+  // 3) When selection changes, notify React Native (WebView) if present
+  useEffect(() => {
+    if (!selected) return;
+    const spot = spotByCode.get(selected.id);
+    if (!spot) return;
+
+    const payload = {
+      type: "spot_selected",
+      code: spot.id,
+      spotId: spot.spotId,
+      start: toLocalISOStringNoZ(start),
+      end: toLocalISOStringNoZ(end),
+    };
+
+    try {
+      if (window.ReactNativeWebView?.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+      }
+    } catch (e) {
+      console.error("postMessage failed", e);
+    }
+  }, [selected, spotByCode, start, end]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
