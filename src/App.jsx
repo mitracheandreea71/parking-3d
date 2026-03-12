@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
@@ -22,94 +22,102 @@ function readQueryDate(paramName) {
   }
 }
 
-const REFRESH_INTERVAL_MS = 30_000; // 30 secunde
-
 export default function App() {
   const [levels, setLevels] = useState(
-    Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] }))
+    Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] })),
   );
 
   const [activeLevel, setActiveLevel] = useState(0);
   const [isolate, setIsolate] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null); // timestamp ultimul refresh
+  const [selected, setSelected] = useState(null); // { level, id } unde id = code (ex: L1)
 
+  // interval selectat (local time)
   const [start, setStart] = useState(
-    () => readQueryDate("start") ?? new Date()
+    () => readQueryDate("start") ?? new Date(),
   );
   const [end, setEnd] = useState(
-    () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000)
+    () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000),
   );
 
+  // convenient map from code -> spot (includes numeric spotId)
   const spotByCode = useMemo(() => {
     const m = new Map();
-    for (const lvl of levels) for (const s of lvl.spots) m.set(s.id, s);
+    for (const lvl of levels) {
+      for (const s of lvl.spots) m.set(s.id, s);
+    }
     return m;
   }, [levels]);
 
-  // 1) Load layout
+  // 1) Load layout (spots) din DB
   useEffect(() => {
     (async () => {
       const spots = await apiGet("/parking/spots");
+
       const grouped = Array.from({ length: LEVELS }, (_, i) => ({
         id: i,
         spots: [],
       }));
+
       for (const s of spots) {
+        // backend: levelId este 1..3 => în UI: 0..2
         const levelIndex = (s.levelId ?? 1) - 1;
         if (!grouped[levelIndex]) continue;
+
         grouped[levelIndex].spots.push({
+          // păstrăm tot ce vine din API (x,y,z,w,h,rot)
           ...s,
+
+          // IMPORTANT: în proiectul tău, Spot/label/selection folosesc spot.id
+          // noi îl setăm la cod (L1, R2 etc.)
           id: s.code,
+
+          // păstrăm spotId numeric pentru mapare status
           spotId: s.spotId,
+
+          // status inițial
           status: "free",
         });
       }
+
       setLevels(grouped);
     })().catch(console.error);
   }, []);
 
-  // 2) Fetch availability (refolosit atât la mount cât și la refresh automat)
-  const fetchAvailability = useCallback(async () => {
-    if (!levels.some((lvl) => lvl.spots.length > 0)) return;
-    const startStr = toLocalISOStringNoZ(start);
-    const endStr = toLocalISOStringNoZ(end);
-    const avail = await apiGet(
-      `/parking/availability?start=${encodeURIComponent(
-        startStr
-      )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`
-    );
-    const map = new Map(avail.map((a) => [a.spotId, a.status]));
-    setLevels((prev) =>
-      prev.map((lvl) => ({
-        ...lvl,
-        spots: lvl.spots.map((s) => ({
-          ...s,
-          status: map.get(s.spotId) ?? "free",
-        })),
-      }))
-    );
-    setLastUpdated(new Date());
-  }, [start, end, levels]);
-
-  // La schimbare interval
+  // 2) Load availability când se schimbă intervalul
   useEffect(() => {
-    fetchAvailability().catch(console.error);
+    // dacă încă nu avem spoturi, nu apelăm
+    if (!levels.some((lvl) => lvl.spots.length > 0)) return;
+
+    (async () => {
+      const startStr = toLocalISOStringNoZ(start); // FĂRĂ Z (timezone fix)
+      const endStr = toLocalISOStringNoZ(end);
+
+      const avail = await apiGet(
+        `/parking/availability?start=${encodeURIComponent(
+          startStr,
+        )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`,
+      );
+
+      const map = new Map(avail.map((a) => [a.spotId, a.status]));
+
+      setLevels((prev) =>
+        prev.map((lvl) => ({
+          ...lvl,
+          spots: lvl.spots.map((s) => ({
+            ...s,
+            status: map.get(s.spotId) ?? "free",
+          })),
+        })),
+      );
+    })().catch(console.error);
   }, [start, end]);
 
-  // Refresh automat la 30s
-  useEffect(() => {
-    const id = setInterval(() => {
-      fetchAvailability().catch(console.error);
-    }, REFRESH_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [fetchAvailability]);
-
-  // 3) postMessage când se selectează un spot
+  // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
     if (!selected) return;
     const spot = spotByCode.get(selected.id);
     if (!spot) return;
+
     const payload = {
       type: "spot_selected",
       code: spot.id,
@@ -117,9 +125,11 @@ export default function App() {
       start: toLocalISOStringNoZ(start),
       end: toLocalISOStringNoZ(end),
     };
+
     try {
-      if (window.ReactNativeWebView?.postMessage)
+      if (window.ReactNativeWebView?.postMessage) {
         window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+      }
     } catch (e) {
       console.error("postMessage failed", e);
     }
@@ -134,12 +144,6 @@ export default function App() {
         setIsolate={setIsolate}
         selected={selected}
         onClear={() => setSelected(null)}
-        start={start}
-        end={end}
-        setStart={setStart}
-        setEnd={setEnd}
-        lastUpdated={lastUpdated}
-        onRefresh={() => fetchAvailability().catch(console.error)}
       />
 
       <Canvas
@@ -156,6 +160,7 @@ export default function App() {
         {levels.map((lvl, idx) => {
           const y = idx * FLOOR_CLEAR;
           const visible = isolate ? idx === activeLevel : true;
+
           return (
             <ParkingLevel
               key={idx}
@@ -165,6 +170,7 @@ export default function App() {
               visible={visible}
               dim={!isolate && idx !== activeLevel}
               selected={selected}
+              // aici setăm selection cu code-ul spotului (s.id = "L1")
               setSelected={(spotCode) =>
                 setSelected({ level: idx, id: spotCode })
               }

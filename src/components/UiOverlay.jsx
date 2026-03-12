@@ -1,16 +1,3 @@
-import { useEffect, useState } from "react";
-
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-function timeAgo(date) {
-  if (!date) return null;
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (secs < 5) return "acum";
-  if (secs < 60) return `acum ${secs}s`;
-  return `acum ${Math.floor(secs / 60)}min`;
-}
-
 export default function UiOverlay({
   activeLevel,
   setActiveLevel,
@@ -18,15 +5,7 @@ export default function UiOverlay({
   setIsolate,
   selected,
   onClear,
-  lastUpdated,
-  onRefresh,
 }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5000);
-    return () => clearInterval(id);
-  }, []);
-
   return (
     <div
       style={{
@@ -132,36 +111,6 @@ export default function UiOverlay({
             <span style={{ color: "#94a3b8", fontSize: 11 }}>{label}</span>
           </div>
         ))}
-      </div>
-
-      {/* Refresh status */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          borderTop: "1px solid #1e293b",
-          paddingTop: 8,
-        }}
-      >
-        <span style={{ color: "#475569", fontSize: 11, flex: 1 }}>
-          {lastUpdated ? `Actualizat ${timeAgo(lastUpdated)}` : "Se încarcă..."}
-        </span>
-        <button
-          onClick={onRefresh}
-          title="Actualizează acum"
-          style={{
-            background: "#0f172a",
-            border: "1px solid #1e293b",
-            borderRadius: 6,
-            color: "#38bdf8",
-            cursor: "pointer",
-            padding: "3px 7px",
-            fontSize: 13,
-          }}
-        >
-          ⟳
-        </button>
       </div>
 
       {/* Spot selectat */}

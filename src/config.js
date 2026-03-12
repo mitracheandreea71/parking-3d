@@ -1,3 +1,11 @@
+function getRequiredEnv(name) {
+  const value = import.meta.env[name];
+  if (!value) {
+    throw new Error(`Missing required Vite environment variable: ${name}`);
+  }
+  return value;
+}
+
 export const LEVELS = 3;
 export const FLOOR_W = 40;
 export const FLOOR_H = 30;
@@ -5,7 +13,7 @@ export const FLOOR_CLEAR = 3.98;
 export const SLAB_T = 0.3;
 export const LANE_W = 6;
 export const RAIL_H = 1.2;
-export const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = getRequiredEnv("VITE_API_URL");
 export const WS_URL = import.meta.env.VITE_WS_URL;
 // Colors
 export const CONCRETE = "#8b8b8b";

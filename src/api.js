@@ -12,11 +12,17 @@ function getToken() {
 
 export async function apiGet(path) {
   const token = getToken();
+  if (!token) {
+    throw new Error("Missing access token for protected parking API");
+  }
   return api(path, { method: "GET", token });
 }
 
 export async function apiPost(path, body) {
   const token = getToken();
+  if (!token) {
+    throw new Error("Missing access token for protected parking API");
+  }
   return api(path, { method: "POST", token, body });
 }
 
