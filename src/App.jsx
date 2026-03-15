@@ -125,27 +125,6 @@ export default function App() {
         )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`,
       );
 
-      const summary = avail.reduce(
-        (acc, item) => {
-          const status = String(item?.status ?? "").toLowerCase();
-          if (status === "free") acc.free += 1;
-          else if (status === "occupied") acc.occupied += 1;
-          else if (status === "reserved") acc.reserved += 1;
-          return acc;
-        },
-        { free: 0, occupied: 0, reserved: 0 },
-      );
-
-      try {
-        if (window.ReactNativeWebView?.postMessage) {
-          window.ReactNativeWebView.postMessage(
-            JSON.stringify({ type: "live_summary", ...summary }),
-          );
-        }
-      } catch (e) {
-        console.error("postMessage live_summary failed", e);
-      }
-
       const map = new Map(avail.map((a) => [a.spotId, a.status]));
 
       setLevels((prev) =>
