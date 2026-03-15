@@ -42,6 +42,7 @@ export default function App() {
           ? "subscription"
           : "projection";
   const subscriptionPlan = readQueryString("subscriptionPlan");
+  const canSelectSpots = mode === "reservation" || mode === "subscription";
   const isLiveMode = mode === "live";
   const [levels, setLevels] = useState(
     Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] })),
@@ -238,6 +239,7 @@ export default function App() {
               spots={lvl.spots}
               visible={visible}
               dim={!isolate && idx !== activeLevel}
+              canSelectSpots={canSelectSpots}
               selected={selected}
               // aici setăm selection cu code-ul spotului (s.id = "L1")
               setSelected={(spotCode) =>

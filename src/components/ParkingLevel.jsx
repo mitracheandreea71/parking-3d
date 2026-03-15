@@ -178,7 +178,7 @@ function TrafficArrows({ y, texture }) {
             <planeGeometry args={[2, 2]} />
             <meshStandardMaterial map={texture} transparent alphaTest={0.5} />
           </mesh>
-        ))
+        )),
       )}
       {arrowPositionsX.map((x) =>
         [FLOOR_H / 2 + 2.5, FLOOR_H / 2 + 5.0].map((z, i) => (
@@ -191,7 +191,7 @@ function TrafficArrows({ y, texture }) {
             <planeGeometry args={[2, 2]} />
             <meshStandardMaterial map={texture} transparent alphaTest={0.5} />
           </mesh>
-        ))
+        )),
       )}
     </group>
   );
@@ -306,7 +306,7 @@ function DashedLine({
       <mesh key={i} position={[centerX, y, z]}>
         <boxGeometry args={[dashLength, 0.01, width]} />
         <meshStandardMaterial color={color} />
-      </mesh>
+      </mesh>,
     );
   }
   return <group>{parts}</group>;
@@ -345,6 +345,7 @@ export default function ParkingLevel({
   spots,
   visible,
   dim,
+  canSelectSpots,
   selected,
   setSelected,
 }) {
@@ -534,18 +535,25 @@ export default function ParkingLevel({
       <LaneMarkings y={y + SLAB_T / 2 + 0.01} />
       <TrafficArrows y={y + SLAB_T / 2 + 0.1} texture={arrowTexture} />
 
-      {spots.map((s) => (
-        <Spot
-          key={`${index}-${s.id}`}
-          levelY={y + SLAB_T / 2}
-          spot={s}
-          isSelected={
-            selected && selected.level === index && selected.id === s.id
-          }
-          onSelect={() => setSelected(s.id)}
-          opacity={opacity}
-        />
-      ))}
+      {spots.map((s) => {
+        const isSelected =
+          selected && selected.level === index && selected.id === s.id;
+
+        return (
+          <Spot
+            key={`${index}-${s.id}`}
+            levelY={y + SLAB_T / 2}
+            spot={s}
+            isSelected={isSelected}
+            onSelect={() => {
+              if (!canSelectSpots) return;
+              if (!isSelected && s.status !== "free") return;
+              setSelected(s.id);
+            }}
+            opacity={opacity}
+          />
+        );
+      })}
     </group>
   );
 }
