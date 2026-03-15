@@ -22,7 +22,19 @@ function readQueryDate(paramName) {
   }
 }
 
+function readQueryMode() {
+  try {
+    const url = new URL(window.location.href);
+    const mode = (url.searchParams.get("mode") || "projection").toLowerCase();
+    return mode === "live" ? "live" : "projection";
+  } catch {
+    return "projection";
+  }
+}
+
 export default function App() {
+  const mode = readQueryMode();
+  const isLiveMode = mode === "live";
   const [levels, setLevels] = useState(
     Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] })),
   );
@@ -38,6 +50,15 @@ export default function App() {
   const [end, setEnd] = useState(
     () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000),
   );
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    if (!isLiveMode) return;
+    const intervalId = window.setInterval(() => {
+      setRefreshTick((prev) => prev + 1);
+    }, 10000);
+    return () => window.clearInterval(intervalId);
+  }, [isLiveMode]);
 
   // convenient map from code -> spot (includes numeric spotId)
   const spotByCode = useMemo(() => {
@@ -83,20 +104,47 @@ export default function App() {
     })().catch(console.error);
   }, []);
 
-  // 2) Load availability când se schimbă intervalul
+  // 2) Load availability când se schimbă intervalul.
+  // În live mode facem refresh periodic la 10s cu fereastră glisantă now -> now+60m.
   useEffect(() => {
     // dacă încă nu avem spoturi, nu apelăm
     if (!levels.some((lvl) => lvl.spots.length > 0)) return;
 
     (async () => {
-      const startStr = toLocalISOStringNoZ(start); // FĂRĂ Z (timezone fix)
-      const endStr = toLocalISOStringNoZ(end);
+      const effectiveStart = isLiveMode ? new Date() : start;
+      const effectiveEnd = isLiveMode
+        ? new Date(effectiveStart.getTime() + 60 * 60 * 1000)
+        : end;
+
+      const startStr = toLocalISOStringNoZ(effectiveStart); // FĂRĂ Z (timezone fix)
+      const endStr = toLocalISOStringNoZ(effectiveEnd);
 
       const avail = await apiGet(
         `/parking/availability?start=${encodeURIComponent(
           startStr,
         )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`,
       );
+
+      const summary = avail.reduce(
+        (acc, item) => {
+          const status = String(item?.status ?? "").toLowerCase();
+          if (status === "free") acc.free += 1;
+          else if (status === "occupied") acc.occupied += 1;
+          else if (status === "reserved") acc.reserved += 1;
+          return acc;
+        },
+        { free: 0, occupied: 0, reserved: 0 },
+      );
+
+      try {
+        if (window.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ type: "live_summary", ...summary }),
+          );
+        }
+      } catch (e) {
+        console.error("postMessage live_summary failed", e);
+      }
 
       const map = new Map(avail.map((a) => [a.spotId, a.status]));
 
@@ -110,7 +158,7 @@ export default function App() {
         })),
       );
     })().catch(console.error);
-  }, [start, end]);
+  }, [start, end, refreshTick, isLiveMode]);
 
   // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
@@ -122,8 +170,10 @@ export default function App() {
       type: "spot_selected",
       code: spot.id,
       spotId: spot.spotId,
-      start: toLocalISOStringNoZ(start),
-      end: toLocalISOStringNoZ(end),
+      start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
+      end: toLocalISOStringNoZ(
+        isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end,
+      ),
     };
 
     try {
@@ -133,10 +183,29 @@ export default function App() {
     } catch (e) {
       console.error("postMessage failed", e);
     }
-  }, [selected, spotByCode, start, end]);
+  }, [selected, spotByCode, start, end, isLiveMode]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 12,
+          right: 12,
+          zIndex: 20,
+          background: "rgba(10,14,26,0.92)",
+          color: "#e2e8f4",
+          border: "1px solid #1e293b",
+          borderRadius: 10,
+          padding: "6px 10px",
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: 0.2,
+        }}
+      >
+        {isLiveMode ? "Parcare live" : "Parcare projection"}
+      </div>
+
       <UiOverlay
         activeLevel={activeLevel}
         setActiveLevel={setActiveLevel}

@@ -21,11 +21,11 @@ export const ASPHALT = "#2a2a2a";
 export const ROOF = "#404040";
 export const RAIL = "#666666";
 export const LINE = "#ffff00";
-export const SELECT_FILL = "#00ff00";
+export const SELECT_FILL = "#38bdf8";
 
 export const colorForStatus = (status) => {
   if (status === "free") return "#10b981";
   if (status === "occupied") return "#ef4444";
-  if (status === "reserved") return "#808080";
+  if (status === "reserved") return "#475569";
   return "#6b7280";
 };

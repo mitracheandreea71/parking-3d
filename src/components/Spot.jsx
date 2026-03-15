@@ -11,7 +11,7 @@ export default function Spot({
 }) {
   const pos = useMemo(
     () => [spot.x + spot.w / 2, levelY + 0.02, spot.y + spot.h / 2],
-    [spot.x, spot.y, spot.w, spot.h, levelY]
+    [spot.x, spot.y, spot.w, spot.h, levelY],
   );
   const scale = useMemo(() => [spot.w, 0.1, spot.h], [spot.w, spot.h]);
   const labelPos = [pos[0], levelY + 0.24, pos[2]];
@@ -45,7 +45,7 @@ export default function Spot({
             <meshStandardMaterial
               color={SELECT_FILL}
               transparent
-              opacity={0.35}
+              opacity={0.5}
             />
           </mesh>
           <mesh position={pos} scale={[spot.w, 0.02, spot.h]}>
