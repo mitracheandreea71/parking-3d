@@ -29,7 +29,7 @@ export default function Spot({
       <mesh position={pos} scale={scale}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
-          color={colorForStatus(spot.status)}
+          color={isSelected ? SELECT_FILL : colorForStatus(spot.status)}
           roughness={0.75}
           metalness={0.1}
           transparent

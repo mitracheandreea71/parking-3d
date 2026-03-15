@@ -241,7 +241,11 @@ export default function App() {
               selected={selected}
               // aici setăm selection cu code-ul spotului (s.id = "L1")
               setSelected={(spotCode) =>
-                setSelected({ level: idx, id: spotCode })
+                setSelected((prev) =>
+                  prev?.level === idx && prev?.id === spotCode
+                    ? null
+                    : { level: idx, id: spotCode },
+                )
               }
             />
           );
