@@ -93,7 +93,8 @@ export default function UiOverlay({
         {[
           { color: "#10b981", label: "Liber" },
           { color: "#ef4444", label: "Ocupat" },
-          { color: "#6b7280", label: "Urmează rezervare" },
+          { color: "#808080", label: "Rezervat" },
+          { color: "#1f2937", label: "Indisponibil" },
         ].map(({ color, label }) => (
           <div
             key={label}

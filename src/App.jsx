@@ -6,7 +6,7 @@ import UiOverlay from "./components/UiOverlay";
 import ParkingLevel from "./components/ParkingLevel";
 import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
 
-import { apiGet } from "./api";
+import { apiGet, apiPost } from "./api";
 import { toLocalISOStringNoZ } from "./time";
 
 function readQueryDate(paramName) {
@@ -22,18 +22,26 @@ function readQueryDate(paramName) {
   }
 }
 
-function readQueryMode() {
+function readQueryString(paramName) {
   try {
     const url = new URL(window.location.href);
-    const mode = (url.searchParams.get("mode") || "projection").toLowerCase();
-    return mode === "live" ? "live" : "projection";
+    return url.searchParams.get(paramName);
   } catch {
-    return "projection";
+    return null;
   }
 }
 
 export default function App() {
-  const mode = readQueryMode();
+  const modeParam = (readQueryString("mode") || "projection").toLowerCase();
+  const mode =
+    modeParam === "live"
+      ? "live"
+      : modeParam === "reservation"
+        ? "reservation"
+        : modeParam === "subscription"
+          ? "subscription"
+          : "projection";
+  const subscriptionPlan = readQueryString("subscriptionPlan");
   const isLiveMode = mode === "live";
   const [levels, setLevels] = useState(
     Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] })),
@@ -104,7 +112,7 @@ export default function App() {
     })().catch(console.error);
   }, []);
 
-  // 2) Load availability când se schimbă intervalul.
+  // 2) Load projection când se schimbă intervalul.
   // În live mode facem refresh periodic la 10s cu fereastră glisantă now -> now+60m.
   useEffect(() => {
     // dacă încă nu avem spoturi, nu apelăm
@@ -119,13 +127,18 @@ export default function App() {
       const startStr = toLocalISOStringNoZ(effectiveStart); // FĂRĂ Z (timezone fix)
       const endStr = toLocalISOStringNoZ(effectiveEnd);
 
-      const avail = await apiGet(
-        `/parking/availability?start=${encodeURIComponent(
-          startStr,
-        )}&end=${encodeURIComponent(endStr)}&extendMinutes=60`,
-      );
+      // Backend projection accepts reservation/subscription mode.
+      const projectionMode =
+        mode === "subscription" ? "subscription" : "reservation";
 
-      const map = new Map(avail.map((a) => [a.spotId, a.status]));
+      const projection = await apiPost("/parking/projection", {
+        mode: projectionMode,
+        start: startStr,
+        end: endStr,
+        subscriptionPlan,
+      });
+
+      const map = new Map(projection.map((p) => [p.spotId, p.status]));
 
       setLevels((prev) =>
         prev.map((lvl) => ({
@@ -137,7 +150,7 @@ export default function App() {
         })),
       );
     })().catch(console.error);
-  }, [start, end, refreshTick, isLiveMode]);
+  }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan]);
 
   // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
@@ -149,6 +162,8 @@ export default function App() {
       type: "spot_selected",
       code: spot.id,
       spotId: spot.spotId,
+      mode,
+      subscriptionPlan,
       start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
       end: toLocalISOStringNoZ(
         isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end,
@@ -162,7 +177,7 @@ export default function App() {
     } catch (e) {
       console.error("postMessage failed", e);
     }
-  }, [selected, spotByCode, start, end, isLiveMode]);
+  }, [selected, spotByCode, start, end, isLiveMode, mode, subscriptionPlan]);
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
@@ -182,7 +197,13 @@ export default function App() {
           letterSpacing: 0.2,
         }}
       >
-        {isLiveMode ? "Parcare live" : "Parcare projection"}
+        {isLiveMode
+          ? "Parcare live"
+          : mode === "reservation"
+            ? "Parcare rezervare"
+            : mode === "subscription"
+              ? `Parcare abonament${subscriptionPlan ? ` (${subscriptionPlan})` : ""}`
+              : "Parcare projection"}
       </div>
 
       <UiOverlay

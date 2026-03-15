@@ -26,6 +26,7 @@ export const SELECT_FILL = "#38bdf8";
 export const colorForStatus = (status) => {
   if (status === "free") return "#10b981";
   if (status === "occupied") return "#ef4444";
-  if (status === "reserved") return "#475569";
+  if (status === "reserved") return "#808080";
+  if (status === "unavailable") return "#1f2937";
   return "#6b7280";
 };
