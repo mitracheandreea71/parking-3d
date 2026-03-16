@@ -17,8 +17,11 @@ export default function Spot({
     [spot.x, spot.w, levelY, spot.z, spot.h],
   );
 
-  // Dacă e selectat, arată albastru. Altfel, arată status-ul din backend
-  const fillColor = isSelected ? SELECT_FILL : colorForStatus(spot.status);
+  // Albastru e permis doar pe locuri free; pentru occupied/reserved rămâne culoarea din DB.
+  const canRenderSelected = isSelected && String(spot.status) === "free";
+  const fillColor = canRenderSelected
+    ? SELECT_FILL
+    : colorForStatus(spot.status);
 
   const handleSelect = (e) => {
     if (!selectable || !onSelect) return;
@@ -40,7 +43,7 @@ export default function Spot({
         <meshStandardMaterial
           color={fillColor}
           emissive={fillColor}
-          emissiveIntensity={isSelected ? 0.35 : 0}
+          emissiveIntensity={canRenderSelected ? 0.35 : 0}
           transparent
           opacity={opacity}
           metalness={0.1}

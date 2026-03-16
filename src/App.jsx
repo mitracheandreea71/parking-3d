@@ -160,13 +160,12 @@ export default function App() {
   useEffect(() => {
     if (!selected) return;
 
-    const exists = levels.some(
-      (lvl) =>
-        lvl.id === selected.level &&
-        lvl.spots.some((s) => s.id === selected.code),
-    );
+    const level = levels.find((lvl) => lvl.id === selected.level);
+    const spot = level?.spots.find((s) => s.id === selected.code);
+    const exists = !!spot;
+    const isStillFree = spot?.status === "free";
 
-    if (!exists || !canSelectSpots) {
+    if (!exists || !isStillFree || !canSelectSpots) {
       setSelected(null);
     }
   }, [selected, levels, canSelectSpots]);
