@@ -539,7 +539,7 @@ export default function ParkingLevel({
         const isSelected =
           selected && selected.level === index && selected.id === s.id;
         const canToggleSelection =
-          canSelectSpots && (isSelected || s.status === "free");
+          canSelectSpots && s.status === "free" && (!selected || isSelected);
 
         return (
           <Spot

@@ -200,6 +200,10 @@ export default function App() {
     }
   }, [selected, spotByCode, start, end, isLiveMode, mode, subscriptionPlan]);
 
+  const visibleLevel = canSelectSpots
+    ? (selected?.level ?? activeLevel)
+    : activeLevel;
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <div
@@ -249,7 +253,11 @@ export default function App() {
 
         {levels.map((lvl, idx) => {
           const y = idx * FLOOR_CLEAR;
-          const visible = isolate ? idx === activeLevel : true;
+          const visible = canSelectSpots
+            ? idx === visibleLevel
+            : isolate
+              ? idx === activeLevel
+              : true;
 
           return (
             <ParkingLevel
@@ -263,11 +271,17 @@ export default function App() {
               selected={selected}
               // aici setăm selection cu code-ul spotului (s.id = "L1")
               setSelected={(spotCode) =>
-                setSelected((prev) =>
-                  prev?.level === idx && prev?.id === spotCode
-                    ? null
-                    : { level: idx, id: spotCode },
-                )
+                setSelected((prev) => {
+                  if (prev) {
+                    if (prev.level === idx && prev.id === spotCode) {
+                      return prev;
+                    }
+                    return prev;
+                  }
+
+                  setActiveLevel(idx);
+                  return { level: idx, id: spotCode };
+                })
               }
             />
           );
