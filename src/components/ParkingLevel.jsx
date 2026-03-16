@@ -564,6 +564,7 @@ export default function ParkingLevel({
         const isSelected =
           !!selected && selected.level === index && selected.code === s.id;
 
+        // Poți selecta doar locurile libere, sau dacă sunt deja selectate (pentru deselect)
         const canToggleSelection =
           canSelectSpots && (s.status === "free" || isSelected);
 
@@ -577,15 +578,13 @@ export default function ParkingLevel({
             onSelect={
               canToggleSelection
                 ? () => {
-                    if (
-                      selected &&
-                      selected.level === index &&
-                      selected.code === s.id
-                    ) {
+                    // Dacă spotul e deja selectat, deselecționează
+                    if (isSelected) {
                       setSelected(null);
                       return;
                     }
 
+                    // Selectează spotul nou (doar unu la o dată)
                     setSelected({
                       level: index,
                       code: s.id,

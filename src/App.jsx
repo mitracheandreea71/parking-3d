@@ -113,7 +113,7 @@ export default function App() {
           ...s,
           id: s.code,
           spotId: s.spotId,
-          status: "free",
+          status: null,
         });
       }
 
@@ -278,7 +278,9 @@ export default function App() {
               canSelectSpots={canSelectSpots && projectionReady}
               selected={selected}
               setSelected={(nextSelected) => {
-                setActiveLevel(idx);
+                if (nextSelected?.level != null) {
+                  setActiveLevel(nextSelected.level);
+                }
                 setSelected(nextSelected);
               }}
             />

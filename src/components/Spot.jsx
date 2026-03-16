@@ -17,6 +17,7 @@ export default function Spot({
     [spot.x, spot.w, levelY, spot.z, spot.h],
   );
 
+  // Dacă e selectat, arată albastru. Altfel, arată status-ul din backend
   const fillColor = isSelected ? SELECT_FILL : colorForStatus(spot.status);
 
   const handleSelect = (e) => {
@@ -24,6 +25,7 @@ export default function Spot({
 
     e.stopPropagation();
 
+    // Evită multi-click-uri rapide (250ms debounce)
     const now = Date.now();
     if (now - lastTapRef.current < 250) return;
     lastTapRef.current = now;
