@@ -55,7 +55,7 @@ export default function UiOverlay({
               fontSize: 12,
             }}
           >
-            N{i + 1}
+            Nivel {i + 1}
           </button>
         ))}
       </div>
@@ -80,38 +80,6 @@ export default function UiOverlay({
           Izolează etajul activ
         </span>
       </label>
-
-      {/* Legendă */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-          marginBottom: 10,
-        }}
-      >
-        {[
-          { color: "#10b981", label: "Disponibil" },
-          { color: "#f87171", label: "Ocupat" },
-          { color: "#9ca3af", label: "Rezervat" },
-        ].map(({ color, label }) => (
-          <div
-            key={label}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            <div
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: color,
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ color: "#94a3b8", fontSize: 11 }}>{label}</span>
-          </div>
-        ))}
-      </div>
 
       {/* Spot selectat */}
       {selected && (
