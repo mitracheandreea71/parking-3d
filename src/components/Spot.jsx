@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { Edges, Html } from "@react-three/drei";
-import { colorForStatus, SELECT_FILL } from "./config";
+import { colorForStatus, SELECT_FILL } from "../config";
 
 export default function Spot({
   levelY,
