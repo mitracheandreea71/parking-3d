@@ -538,6 +538,8 @@ export default function ParkingLevel({
       {spots.map((s) => {
         const isSelected =
           selected && selected.level === index && selected.id === s.id;
+        const canToggleSelection =
+          canSelectSpots && (isSelected || s.status === "free");
 
         return (
           <Spot
@@ -545,11 +547,13 @@ export default function ParkingLevel({
             levelY={y + SLAB_T / 2}
             spot={s}
             isSelected={isSelected}
-            onSelect={() => {
-              if (!canSelectSpots) return;
-              if (!isSelected && s.status !== "free") return;
-              setSelected(s.id);
-            }}
+            onSelect={
+              canToggleSelection
+                ? () => {
+                    setSelected(s.id);
+                  }
+                : undefined
+            }
             opacity={opacity}
           />
         );

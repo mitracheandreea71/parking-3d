@@ -57,16 +57,18 @@ export default function Spot({
       )}
 
       {/* hitbox pentru click/select */}
-      <mesh
-        position={[pos[0], levelY + 0.02, pos[2]]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect?.();
-        }}
-      >
-        <boxGeometry args={[spot.w, 0.02, spot.h]} />
-        <meshBasicMaterial transparent opacity={0} />
-      </mesh>
+      {onSelect ? (
+        <mesh
+          position={[pos[0], levelY + 0.02, pos[2]]}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect();
+          }}
+        >
+          <boxGeometry args={[spot.w, 0.02, spot.h]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      ) : null}
 
       {/* etichetă */}
       <Html

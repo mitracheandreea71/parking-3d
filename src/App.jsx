@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
@@ -60,6 +60,7 @@ export default function App() {
     () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000),
   );
   const [refreshTick, setRefreshTick] = useState(0);
+  const projectionRequestRef = useRef(0);
 
   useEffect(() => {
     if (!isLiveMode) return;
@@ -69,6 +70,11 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, [isLiveMode]);
 
+  useEffect(() => {
+    if (canSelectSpots) return;
+    setSelected(null);
+  }, [canSelectSpots]);
+
   // convenient map from code -> spot (includes numeric spotId)
   const spotByCode = useMemo(() => {
     const m = new Map();
@@ -77,6 +83,11 @@ export default function App() {
     }
     return m;
   }, [levels]);
+
+  const hasSpots = useMemo(
+    () => levels.some((lvl) => lvl.spots.length > 0),
+    [levels],
+  );
 
   // 1) Load layout (spots) din DB
   useEffect(() => {
@@ -117,9 +128,10 @@ export default function App() {
   // În live mode facem refresh periodic la 10s cu fereastră glisantă now -> now+60m.
   useEffect(() => {
     // dacă încă nu avem spoturi, nu apelăm
-    if (!levels.some((lvl) => lvl.spots.length > 0)) return;
+    if (!hasSpots) return;
 
     (async () => {
+      const requestId = ++projectionRequestRef.current;
       const effectiveStart = isLiveMode ? new Date() : start;
       const effectiveEnd = isLiveMode
         ? new Date(effectiveStart.getTime() + 60 * 60 * 1000)
@@ -141,6 +153,9 @@ export default function App() {
 
       const map = new Map(projection.map((p) => [p.spotId, p.status]));
 
+      // Ignore late responses from older requests to prevent status flicker.
+      if (requestId !== projectionRequestRef.current) return;
+
       setLevels((prev) =>
         prev.map((lvl) => ({
           ...lvl,
@@ -151,7 +166,7 @@ export default function App() {
         })),
       );
     })().catch(console.error);
-  }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan]);
+  }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan, hasSpots]);
 
   // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
