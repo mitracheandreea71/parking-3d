@@ -65,6 +65,7 @@ export default function App() {
   const [refreshTick, setRefreshTick] = useState(0);
   const projectionRequestRef = useRef(0);
   const lastSelectionFingerprintRef = useRef(null);
+  const lastLocalSelectionAtRef = useRef(0);
   const [projectionReady, setProjectionReady] = useState(false);
 
   useEffect(() => {
@@ -247,6 +248,13 @@ export default function App() {
                 prev.spotId === normalized.spotId));
 
           if (same) return prev;
+
+          // După un tap local, păstrăm selecția locală pentru scurt timp
+          // ca să evităm overwrite prematur din polling.
+          const localSelectionIsFresh =
+            !!prev && Date.now() - lastLocalSelectionAtRef.current < 4000;
+          if (localSelectionIsFresh) return prev;
+
           return normalized;
         });
       } catch {
@@ -319,7 +327,10 @@ export default function App() {
         isolate={isolate}
         setIsolate={setIsolate}
         selected={selected}
-        onClear={() => setSelected(null)}
+        onClear={() => {
+          lastLocalSelectionAtRef.current = Date.now();
+          setSelected(null);
+        }}
       />
 
       <Canvas
@@ -353,6 +364,7 @@ export default function App() {
               canSelectSpots={canSelectSpots && projectionReady}
               selected={selected}
               setSelected={(nextSelected) => {
+                lastLocalSelectionAtRef.current = Date.now();
                 if (nextSelected?.level != null) {
                   setActiveLevel(nextSelected.level);
                 }

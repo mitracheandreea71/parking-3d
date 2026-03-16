@@ -35,11 +35,7 @@ export default function Spot({
 
   return (
     <group>
-      <mesh
-        position={pos}
-        onClick={selectable ? handleSelect : undefined}
-        onPointerDown={selectable ? handleSelect : undefined}
-      >
+      <mesh position={pos} onClick={selectable ? handleSelect : undefined}>
         <boxGeometry args={[spot.w, 0.02, spot.h]} />
         <meshStandardMaterial
           color={fillColor}
