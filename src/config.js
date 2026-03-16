@@ -26,17 +26,8 @@ export const LINE = "#ffff00";
 export const SELECT_FILL = "#38bdf8";
 
 export const FREE_FILL = "#10b981";
-export const OCCUPIED_FILL = "#ef4444";
-export const RESERVED_FILL = "#1f2937";
 
 export const colorForStatus = (status) => {
-  const normalized = String(status ?? "")
-    .trim()
-    .toLowerCase();
-
-  if (normalized === "free") return FREE_FILL;
-  if (normalized === "occupied") return OCCUPIED_FILL;
-  if (normalized === "reserved") return RESERVED_FILL;
-
+  void status;
   return FREE_FILL;
 };

@@ -26,7 +26,7 @@ export default function UiOverlay({
       }}
     >
       {/* Etaje */}
-          { color: "#1f2937", label: "Rezervat" },
+      <div
         style={{
           fontWeight: 700,
           marginBottom: 6,
@@ -90,11 +90,7 @@ export default function UiOverlay({
           marginBottom: 10,
         }}
       >
-        {[
-          { color: "#10b981", label: "Liber" },
-          { color: "#ef4444", label: "Ocupat" },
-          { color: "#1f2937", label: "Indisponibil" },
-        ].map(({ color, label }) => (
+        {[{ color: "#10b981", label: "Disponibil" }].map(({ color, label }) => (
           <div
             key={label}
             style={{ display: "flex", alignItems: "center", gap: 6 }}

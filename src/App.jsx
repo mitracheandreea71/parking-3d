@@ -6,7 +6,7 @@ import UiOverlay from "./components/UiOverlay";
 import ParkingLevel from "./components/ParkingLevel";
 import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
 
-import { apiGet, apiPost } from "./api";
+import { apiGet } from "./api";
 import { toLocalISOStringNoZ } from "./time";
 
 function readQueryDate(paramName) {
@@ -105,57 +105,14 @@ export default function App() {
           ...s,
           id: s.code,
           spotId: s.spotId,
-          status: null,
+          status: "free",
         });
       }
 
       setLevels(grouped);
-    })().catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    if (!hasSpots) return;
-
-    setProjectionReady(false);
-
-    (async () => {
-      const requestId = ++projectionRequestRef.current;
-
-      const effectiveStart = isLiveMode ? new Date() : start;
-      const effectiveEnd = isLiveMode
-        ? new Date(effectiveStart.getTime() + 60 * 60 * 1000)
-        : end;
-
-      const startStr = toLocalISOStringNoZ(effectiveStart);
-      const endStr = toLocalISOStringNoZ(effectiveEnd);
-
-      const projectionMode =
-        mode === "subscription" ? "subscription" : "reservation";
-
-      const projection = await apiPost("/parking/projection", {
-        mode: projectionMode,
-        start: startStr,
-        end: endStr,
-        subscriptionPlan,
-      });
-
-      const map = new Map(projection.map((p) => [p.spotId, p.status]));
-
-      if (requestId !== projectionRequestRef.current) return;
-
-      setLevels((prev) =>
-        prev.map((lvl) => ({
-          ...lvl,
-          spots: lvl.spots.map((s) => ({
-            ...s,
-            status: map.get(s.spotId) ?? "free",
-          })),
-        })),
-      );
-
       setProjectionReady(true);
     })().catch(console.error);
-  }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan, hasSpots]);
+  }, []);
 
   useEffect(() => {
     if (!selected) return;
