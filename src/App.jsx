@@ -64,6 +64,7 @@ export default function App() {
 
   const [refreshTick, setRefreshTick] = useState(0);
   const projectionRequestRef = useRef(0);
+  const lastSelectionFingerprintRef = useRef(null);
   const [projectionReady, setProjectionReady] = useState(false);
 
   useEffect(() => {
@@ -170,24 +171,44 @@ export default function App() {
   }, [selected, levels, canSelectSpots]);
 
   useEffect(() => {
-    if (!selected) return;
+    const fingerprint = selected
+      ? `${selected.level}|${selected.code}|${selected.spotId}`
+      : "__NONE__";
 
-    const level = levels.find((lvl) => lvl.id === selected.level);
-    const spot = level?.spots.find((s) => s.id === selected.code);
-    if (!spot) return;
+    // La prima randare nu trimitem clear automat.
+    if (lastSelectionFingerprintRef.current === null && !selected) {
+      lastSelectionFingerprintRef.current = fingerprint;
+      return;
+    }
 
-    const payload = {
-      type: "spot_selected",
-      code: spot.id,
-      spotId: spot.spotId,
-      level: selected.level,
-      mode,
-      subscriptionPlan,
-      start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
-      end: toLocalISOStringNoZ(
-        isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end,
-      ),
-    };
+    if (lastSelectionFingerprintRef.current === fingerprint) {
+      return;
+    }
+
+    lastSelectionFingerprintRef.current = fingerprint;
+
+    let payload;
+
+    if (!selected) {
+      payload = { type: "spot_cleared" };
+    } else {
+      const level = levels.find((lvl) => lvl.id === selected.level);
+      const spot = level?.spots.find((s) => s.id === selected.code);
+      if (!spot) return;
+
+      payload = {
+        type: "spot_selected",
+        code: spot.id,
+        spotId: spot.spotId,
+        level: selected.level,
+        mode,
+        subscriptionPlan,
+        start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
+        end: toLocalISOStringNoZ(
+          isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end,
+        ),
+      };
+    }
 
     try {
       if (window.ReactNativeWebView?.postMessage) {
@@ -197,6 +218,50 @@ export default function App() {
       console.error("postMessage failed", e);
     }
   }, [selected, levels, start, end, isLiveMode, mode, subscriptionPlan]);
+
+  useEffect(() => {
+    if (!canSelectSpots || !projectionReady) return;
+
+    let disposed = false;
+
+    const syncSelectedFromServer = async () => {
+      try {
+        const resp = await apiGet("/parking/selected-spot");
+        if (disposed) return;
+
+        const next = resp?.selected ?? null;
+        const normalized = next
+          ? {
+              level: Number(next.level),
+              code: String(next.code),
+              spotId: Number(next.spotId),
+            }
+          : null;
+
+        setSelected((prev) => {
+          const same =
+            !!prev === !!normalized &&
+            (!prev ||
+              (prev.level === normalized.level &&
+                prev.code === normalized.code &&
+                prev.spotId === normalized.spotId));
+
+          if (same) return prev;
+          return normalized;
+        });
+      } catch {
+        // Ignorăm erori tranzitorii de rețea la sync.
+      }
+    };
+
+    syncSelectedFromServer();
+    const intervalId = window.setInterval(syncSelectedFromServer, 1500);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [canSelectSpots, projectionReady]);
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
