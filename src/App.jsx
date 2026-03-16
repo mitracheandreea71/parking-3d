@@ -61,6 +61,7 @@ export default function App() {
   );
   const [refreshTick, setRefreshTick] = useState(0);
   const projectionRequestRef = useRef(0);
+  const [projectionReady, setProjectionReady] = useState(false);
 
   useEffect(() => {
     if (!isLiveMode) return;
@@ -130,6 +131,8 @@ export default function App() {
     // dacă încă nu avem spoturi, nu apelăm
     if (!hasSpots) return;
 
+    setProjectionReady(false);
+
     (async () => {
       const requestId = ++projectionRequestRef.current;
       const effectiveStart = isLiveMode ? new Date() : start;
@@ -165,6 +168,8 @@ export default function App() {
           })),
         })),
       );
+
+      setProjectionReady(true);
     })().catch(console.error);
   }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan, hasSpots]);
 
@@ -254,7 +259,7 @@ export default function App() {
               spots={lvl.spots}
               visible={visible}
               dim={!isolate && idx !== activeLevel}
-              canSelectSpots={canSelectSpots}
+              canSelectSpots={canSelectSpots && projectionReady}
               selected={selected}
               // aici setăm selection cu code-ul spotului (s.id = "L1")
               setSelected={(spotCode) =>
