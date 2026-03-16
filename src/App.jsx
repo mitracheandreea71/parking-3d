@@ -364,11 +364,10 @@ export default function App() {
         {levels.map((lvl, idx) => {
           const y = idx * FLOOR_CLEAR;
 
-          const visible = canSelectSpots
-            ? idx === visibleLevel
-            : isolate
-              ? idx === activeLevel
-              : true;
+          const isolateTargetLevel = canSelectSpots
+            ? visibleLevel
+            : activeLevel;
+          const visible = isolate ? idx === isolateTargetLevel : true;
 
           return (
             <ParkingLevel
