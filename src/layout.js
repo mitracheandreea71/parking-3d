@@ -19,7 +19,7 @@ export const makeSpots = () => {
         y: laneZ,
         w: spotW,
         h: spotH,
-        status: "free",
+        status: Math.random() > 0.75 ? "occupied" : "free",
         kind: "STD",
       });
     }
@@ -33,7 +33,7 @@ export const makeSpots = () => {
         y: laneZ,
         w: spotW,
         h: spotH,
-        status: "free",
+        status: Math.random() > 0.8 ? "reserved" : "free",
         kind: "STD",
       });
     }

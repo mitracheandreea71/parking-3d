@@ -90,7 +90,11 @@ export default function UiOverlay({
           marginBottom: 10,
         }}
       >
-        {[{ color: "#10b981", label: "Disponibil" }].map(({ color, label }) => (
+        {[
+          { color: "#10b981", label: "Disponibil" },
+          { color: "#f87171", label: "Ocupat" },
+          { color: "#9ca3af", label: "Rezervat" },
+        ].map(({ color, label }) => (
           <div
             key={label}
             style={{ display: "flex", alignItems: "center", gap: 6 }}

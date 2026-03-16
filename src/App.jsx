@@ -6,7 +6,7 @@ import UiOverlay from "./components/UiOverlay";
 import ParkingLevel from "./components/ParkingLevel";
 import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
 
-import { apiGet } from "./api";
+import { apiGet, apiPost } from "./api";
 import { toLocalISOStringNoZ } from "./time";
 
 function readQueryDate(paramName) {
@@ -105,14 +105,71 @@ export default function App() {
           ...s,
           id: s.code,
           spotId: s.spotId,
-          status: "free",
+          status: s.status ?? "free",
         });
       }
 
       setLevels(grouped);
-      setProjectionReady(true);
     })().catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!hasSpots) return;
+
+    let cancelled = false;
+    const requestId = ++projectionRequestRef.current;
+
+    const startDate = isLiveMode ? new Date() : start;
+    const endDate = isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end;
+
+    const projectionMode =
+      mode === "subscription" ? "subscription" : "reservation";
+
+    (async () => {
+      try {
+        const projection = await apiPost("/parking/projection", {
+          mode: projectionMode,
+          start: toLocalISOStringNoZ(startDate),
+          end: toLocalISOStringNoZ(endDate),
+          subscriptionPlan,
+          extendMinutes: 60,
+        });
+
+        if (cancelled || projectionRequestRef.current !== requestId) return;
+
+        const bySpotId = new Map(projection.map((p) => [p.spotId, p.status]));
+
+        setLevels((prev) =>
+          prev.map((lvl) => ({
+            ...lvl,
+            spots: lvl.spots.map((s) => ({
+              ...s,
+              status: bySpotId.get(s.spotId) ?? "free",
+            })),
+          })),
+        );
+
+        setProjectionReady(true);
+      } catch (e) {
+        if (!cancelled) {
+          console.error("projection fetch failed", e);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hasSpots,
+    mode,
+    subscriptionPlan,
+    start,
+    end,
+    isLiveMode,
+    refreshTick,
+    canSelectSpots,
+  ]);
 
   useEffect(() => {
     if (!selected) return;

@@ -26,8 +26,11 @@ export const LINE = "#ffff00";
 export const SELECT_FILL = "#38bdf8";
 
 export const FREE_FILL = "#10b981";
+export const OCCUPIED_FILL = "#f87171";
+export const RESERVED_FILL = "#9ca3af";
 
 export const colorForStatus = (status) => {
-  void status;
+  if (status === "occupied") return OCCUPIED_FILL;
+  if (status === "reserved") return RESERVED_FILL;
   return FREE_FILL;
 };
