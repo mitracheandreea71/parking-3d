@@ -28,5 +28,5 @@ export const colorForStatus = (status) => {
   if (status === "occupied") return "#ef4444";
   if (status === "reserved") return "#1f2937";
   if (status === "unavailable") return "#1f2937";
-  return "#6b7280";
+  return "#10b981";
 };

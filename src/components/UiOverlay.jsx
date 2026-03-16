@@ -124,7 +124,7 @@ export default function UiOverlay({
         >
           <div style={{ fontSize: 12, color: "#94a3b8" }}>
             <b style={{ color: "#e5e7eb" }}>Selectat:</b> Etaj{" "}
-            {selected.level + 1} / {selected.id}
+            {selected.level + 1} / {selected.code ?? selected.spotId}
           </div>
           <button
             onClick={onClear}

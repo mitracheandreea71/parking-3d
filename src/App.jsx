@@ -50,7 +50,7 @@ export default function App() {
 
   const [activeLevel, setActiveLevel] = useState(0);
   const [isolate, setIsolate] = useState(false);
-  const [selected, setSelected] = useState(null); // { level, id } unde id = code (ex: L1)
+  const [selected, setSelected] = useState(null); // { level, spotId, code }
 
   // interval selectat (local time)
   const [start, setStart] = useState(
@@ -76,11 +76,11 @@ export default function App() {
     setSelected(null);
   }, [canSelectSpots]);
 
-  // convenient map from code -> spot (includes numeric spotId)
-  const spotByCode = useMemo(() => {
+  // convenient map from numeric spotId -> spot
+  const spotBySpotId = useMemo(() => {
     const m = new Map();
     for (const lvl of levels) {
-      for (const s of lvl.spots) m.set(s.id, s);
+      for (const s of lvl.spots) m.set(s.spotId, s);
     }
     return m;
   }, [levels]);
@@ -176,7 +176,7 @@ export default function App() {
   // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
     if (!selected) return;
-    const spot = spotByCode.get(selected.id);
+    const spot = spotBySpotId.get(selected.spotId);
     if (!spot) return;
 
     const payload = {
@@ -198,7 +198,7 @@ export default function App() {
     } catch (e) {
       console.error("postMessage failed", e);
     }
-  }, [selected, spotByCode, start, end, isLiveMode, mode, subscriptionPlan]);
+  }, [selected, spotBySpotId, start, end, isLiveMode, mode, subscriptionPlan]);
 
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
@@ -269,18 +269,22 @@ export default function App() {
               dim={!isolate && idx !== activeLevel}
               canSelectSpots={canSelectSpots && projectionReady}
               selected={selected}
-              // aici setăm selection cu code-ul spotului (s.id = "L1")
-              setSelected={(spotCode) =>
+              setSelected={(spotSelection) =>
                 setSelected((prev) => {
-                  if (prev) {
-                    if (prev.level === idx && prev.id === spotCode) {
-                      return prev;
-                    }
-                    return prev;
+                  if (
+                    prev &&
+                    prev.level === idx &&
+                    prev.spotId === spotSelection.spotId
+                  ) {
+                    return null;
                   }
 
                   setActiveLevel(idx);
-                  return { level: idx, id: spotCode };
+                  return {
+                    level: idx,
+                    spotId: spotSelection.spotId,
+                    code: spotSelection.code,
+                  };
                 })
               }
             />

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Html, Edges } from "@react-three/drei";
 import { LINE, SELECT_FILL, colorForStatus } from "../config";
 
@@ -8,8 +8,8 @@ export default function Spot({
   isSelected,
   onSelect,
   opacity = 1,
+  selectable = true,
 }) {
-  const lastPointerSelectRef = useRef(0);
   const pos = useMemo(
     () => [spot.x + spot.w / 2, levelY + 0.02, spot.y + spot.h / 2],
     [spot.x, spot.y, spot.w, spot.h, levelY],
@@ -19,13 +19,6 @@ export default function Spot({
 
   const handleSelect = (e) => {
     e.stopPropagation();
-
-    const now = Date.now();
-    if (now - lastPointerSelectRef.current < 250) {
-      return;
-    }
-
-    lastPointerSelectRef.current = now;
     onSelect?.();
   };
 
@@ -70,11 +63,10 @@ export default function Spot({
       )}
 
       {/* hitbox pentru click/select */}
-      {onSelect ? (
+      {selectable ? (
         <mesh
           position={[pos[0], levelY + 0.02, pos[2]]}
-          onPointerDown={handleSelect}
-          onClick={handleSelect}
+          onPointerUp={handleSelect}
         >
           <boxGeometry args={[spot.w, 0.02, spot.h]} />
           <meshBasicMaterial transparent opacity={0} />
