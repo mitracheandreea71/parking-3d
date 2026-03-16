@@ -168,22 +168,22 @@ export default function App() {
   useEffect(() => {
     if (!selected) return;
 
-    const selectedSpot = spotBySpotId.get(selected.spotId);
-    if (!selectedSpot) {
-      setSelected(null);
-      return;
-    }
+    const exists = levels.some(
+      (lvl) =>
+        lvl.id === selected.level &&
+        lvl.spots.some((s) => s.id === selected.code),
+    );
 
-    if (!canSelectSpots) {
+    if (!exists || !canSelectSpots) {
       setSelected(null);
-      return;
     }
-  }, [selected, spotBySpotId, canSelectSpots]);
+  }, [selected, levels, canSelectSpots]);
 
   useEffect(() => {
     if (!selected) return;
 
-    const spot = spotBySpotId.get(selected.spotId);
+    const level = levels.find((lvl) => lvl.id === selected.level);
+    const spot = level?.spots.find((s) => s.id === selected.code);
     if (!spot) return;
 
     const payload = {
@@ -206,8 +206,7 @@ export default function App() {
     } catch (e) {
       console.error("postMessage failed", e);
     }
-  }, [selected, spotBySpotId, start, end, isLiveMode, mode, subscriptionPlan]);
-
+  }, [selected, levels, start, end, isLiveMode, mode, subscriptionPlan]);
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
