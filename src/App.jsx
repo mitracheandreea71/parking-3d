@@ -101,12 +101,8 @@ export default function App() {
         const levelIndex = (s.levelId ?? 1) - 1;
         if (!grouped[levelIndex]) continue;
 
-        const spotWidth = Number(s.w ?? 0);
-        const mirroredX = FLOOR_W - Number(s.x) - spotWidth;
-
         grouped[levelIndex].spots.push({
           ...s,
-          x: mirroredX,
           id: s.code,
           spotId: s.spotId,
           status: s.status ?? "free",
