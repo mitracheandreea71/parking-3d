@@ -1,4 +1,4 @@
-import { Text, useTexture } from "@react-three/drei";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import Spot from "./Spot";
 import EntranceGate from "./EntranceGate";
@@ -127,40 +127,6 @@ function ExteriorWalls({
           {mat}
         </mesh>
       )}
-    </group>
-  );
-}
-
-function spotNumberLabel(spotId) {
-  if (typeof spotId !== "string") return String(spotId);
-  const m = spotId.match(/\d+/);
-  return m ? m[0] : spotId;
-}
-
-function ParkingSpotNumbers({ y, spots }) {
-  return (
-    <group>
-      {spots.map((spot) => {
-        const isTopRow = spot.y < FLOOR_H / 2;
-        const position = [
-          spot.x + spot.w / 2,
-          y + FLOOR_CLEAR / 2,
-          isTopRow ? 0.4 : FLOOR_H - 0.4,
-        ];
-
-        return (
-          <Text
-            key={`num-${spot.id}`}
-            position={position}
-            rotation-y={isTopRow ? 0 : Math.PI}
-            fontSize={1.5}
-            color="white"
-            anchorX="center"
-          >
-            {spotNumberLabel(spot.id)}
-          </Text>
-        );
-      })}
     </group>
   );
 }
@@ -558,7 +524,6 @@ export default function ParkingLevel({
 
       <LaneMarkings y={y + SLAB_T / 2 + 0.01} />
       <TrafficArrows y={y + SLAB_T / 2 + 0.1} texture={arrowTexture} />
-      <ParkingSpotNumbers y={y} spots={spots} />
 
       {spots.map((s) => {
         const isSelected =

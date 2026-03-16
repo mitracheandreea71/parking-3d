@@ -13,8 +13,8 @@ export default function Spot({
   const lastTapRef = useRef(0);
 
   const pos = useMemo(
-    () => [spot.x + spot.w / 2, levelY + 0.01, spot.z + spot.h / 2],
-    [spot.x, spot.w, levelY, spot.z, spot.h],
+    () => [spot.x + spot.w / 2, levelY + 0.01, spot.y + spot.h / 2],
+    [spot.x, spot.w, levelY, spot.y, spot.h],
   );
 
   // Albastru apare doar pentru locul selectat; restul locurilor rămân pe culoarea implicită.
