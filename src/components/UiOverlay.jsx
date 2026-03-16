@@ -26,7 +26,7 @@ export default function UiOverlay({
       }}
     >
       {/* Etaje */}
-      <div
+          { color: "#1f2937", label: "Rezervat" },
         style={{
           fontWeight: 700,
           marginBottom: 6,
