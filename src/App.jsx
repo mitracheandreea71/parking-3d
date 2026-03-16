@@ -81,16 +81,6 @@ export default function App() {
     setSelected(null);
   }, [canSelectSpots]);
 
-  const spotBySpotId = useMemo(() => {
-    const m = new Map();
-    for (const lvl of levels) {
-      for (const s of lvl.spots) {
-        m.set(s.spotId, s);
-      }
-    }
-    return m;
-  }, [levels]);
-
   const hasSpots = useMemo(
     () => levels.some((lvl) => lvl.spots.length > 0),
     [levels],
@@ -237,6 +227,26 @@ export default function App() {
               ? `Parcare abonament${subscriptionPlan ? ` (${subscriptionPlan})` : ""}`
               : "Parcare projection"}
       </div>
+
+      {!projectionReady && hasSpots && (
+        <div
+          style={{
+            position: "fixed",
+            top: 12,
+            left: 12,
+            zIndex: 20,
+            background: "rgba(15, 23, 42, 0.9)",
+            color: "#e2e8f0",
+            border: "1px solid #334155",
+            borderRadius: 10,
+            padding: "6px 10px",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          Se incarca disponibilitatea locurilor...
+        </div>
+      )}
 
       <UiOverlay
         activeLevel={activeLevel}
