@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { Html, Edges } from "@react-three/drei";
-import { LINE, SELECT_FILL, colorForStatus } from "../config";
+import React, { useMemo, useRef } from "react";
+import { Edges, Html } from "@react-three/drei";
+import { colorForStatus, SELECT_FILL } from "./config";
 
 export default function Spot({
   levelY,
@@ -8,111 +8,65 @@ export default function Spot({
   isSelected,
   onSelect,
   opacity = 1,
-  selectable = true,
+  selectable = false,
 }) {
+  const lastTapRef = useRef(0);
+
   const pos = useMemo(
-    () => [spot.x + spot.w / 2, levelY + 0.02, spot.y + spot.h / 2],
-    [spot.x, spot.y, spot.w, spot.h, levelY],
+    () => [spot.x + spot.w / 2, levelY + 0.01, spot.z + spot.h / 2],
+    [spot.x, spot.w, levelY, spot.z, spot.h],
   );
-  const scale = useMemo(() => [spot.w, 0.1, spot.h], [spot.w, spot.h]);
-  const labelPos = [pos[0], levelY + 0.24, pos[2]];
+
+  const fillColor = isSelected ? SELECT_FILL : colorForStatus(spot.status);
 
   const handleSelect = (e) => {
+    if (!selectable || !onSelect) return;
+
     e.stopPropagation();
-    onSelect?.();
+
+    const now = Date.now();
+    if (now - lastTapRef.current < 250) return;
+    lastTapRef.current = now;
+
+    onSelect();
   };
 
   return (
     <group>
-      {/* contur alb */}
-      <MarkingRect
-        position={[pos[0], levelY + 0.005, pos[2]]}
-        w={spot.w}
-        h={spot.h}
-      />
-
-      {/* dala colorată după status (din backend) */}
-      <mesh position={pos} scale={scale}>
-        <boxGeometry args={[1, 1, 1]} />
+      <mesh
+        position={pos}
+        onClick={selectable ? handleSelect : undefined}
+        onPointerDown={selectable ? handleSelect : undefined}
+      >
+        <boxGeometry args={[spot.w, 0.02, spot.h]} />
         <meshStandardMaterial
-          color={isSelected ? SELECT_FILL : colorForStatus(spot.status)}
-          roughness={0.75}
-          metalness={0.1}
+          color={fillColor}
+          emissive={fillColor}
+          emissiveIntensity={isSelected ? 0.35 : 0}
           transparent
-          opacity={0.9 * opacity}
+          opacity={opacity}
+          metalness={0.1}
+          roughness={0.75}
         />
+        <Edges color="#0f172a" />
       </mesh>
 
-      {/* selecție */}
-      {isSelected && (
-        <group>
-          <mesh position={[pos[0], levelY + 0.015, pos[2]]}>
-            <boxGeometry args={[spot.w - 0.05, 0.01, spot.h - 0.05]} />
-            <meshStandardMaterial
-              color={SELECT_FILL}
-              transparent
-              opacity={0.5}
-            />
-          </mesh>
-          <mesh position={pos} scale={[spot.w, 0.02, spot.h]}>
-            <boxGeometry args={[1, 1, 1]} />
-            <meshBasicMaterial transparent opacity={0} />
-            <Edges scale={1.001} threshold={15} color={SELECT_FILL} />
-          </mesh>
-        </group>
-      )}
-
-      {/* hitbox pentru click/select */}
-      {selectable ? (
-        <mesh
-          position={[pos[0], levelY + 0.02, pos[2]]}
-          onPointerUp={handleSelect}
-        >
-          <boxGeometry args={[spot.w, 0.02, spot.h]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-      ) : null}
-
-      {/* etichetă */}
       <Html
-        position={labelPos}
+        position={[pos[0], levelY + 0.06, pos[2]]}
         center
-        distanceFactor={12}
+        distanceFactor={18}
         style={{
-          background: "rgba(0,0,0,0.65)",
-          color: "white",
-          padding: "2px 4px",
-          borderRadius: 4,
-          fontSize: 11,
-          fontFamily: "system-ui, sans-serif",
+          pointerEvents: "none",
+          userSelect: "none",
+          whiteSpace: "nowrap",
+          fontSize: "10px",
+          fontWeight: 700,
+          color: "#0f172a",
+          textShadow: "0 1px 2px rgba(255,255,255,0.8)",
         }}
       >
-        {spot.id}
+        {spot.code}
       </Html>
-    </group>
-  );
-}
-
-function MarkingRect({ position, w, h }) {
-  const t = 0.06;
-  return (
-    <group>
-      <mesh position={[position[0], position[1], position[2] - h / 2 + t / 2]}>
-        <boxGeometry args={[w, 0.005, t]} />
-        <meshStandardMaterial color={LINE} />
-      </mesh>
-      <mesh position={[position[0], position[1], position[2] + h / 2 - t / 2]}>
-        <boxGeometry args={[w, 0.005, t]} />
-        <meshStandardMaterial color={LINE} />
-      </mesh>
-      <mesh position={[position[0] - w / 2 + t / 2, position[1], position[2]]}>
-        <boxGeometry args={[t, 0.005, h]} />
-        <meshStandardMaterial color={LINE} />
-      </mesh>
-      <mesh position={[position[0] + w / 2 - t / 2, position[1], position[2]]}>
-        <boxGeometry args={[t, 0.005, h]} />
-        <meshStandardMaterial color={LINE} />
-      </mesh>
     </group>
   );
 }

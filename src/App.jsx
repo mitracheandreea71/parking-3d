@@ -33,6 +33,7 @@ function readQueryString(paramName) {
 
 export default function App() {
   const modeParam = (readQueryString("mode") || "projection").toLowerCase();
+
   const mode =
     modeParam === "live"
       ? "live"
@@ -41,9 +42,11 @@ export default function App() {
         : modeParam === "subscription"
           ? "subscription"
           : "projection";
+
   const subscriptionPlan = readQueryString("subscriptionPlan");
   const canSelectSpots = mode === "reservation" || mode === "subscription";
   const isLiveMode = mode === "live";
+
   const [levels, setLevels] = useState(
     Array.from({ length: LEVELS }, (_, i) => ({ id: i, spots: [] })),
   );
@@ -52,22 +55,24 @@ export default function App() {
   const [isolate, setIsolate] = useState(false);
   const [selected, setSelected] = useState(null); // { level, spotId, code }
 
-  // interval selectat (local time)
   const [start, setStart] = useState(
     () => readQueryDate("start") ?? new Date(),
   );
   const [end, setEnd] = useState(
     () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000),
   );
+
   const [refreshTick, setRefreshTick] = useState(0);
   const projectionRequestRef = useRef(0);
   const [projectionReady, setProjectionReady] = useState(false);
 
   useEffect(() => {
     if (!isLiveMode) return;
+
     const intervalId = window.setInterval(() => {
       setRefreshTick((prev) => prev + 1);
     }, 10000);
+
     return () => window.clearInterval(intervalId);
   }, [isLiveMode]);
 
@@ -76,11 +81,12 @@ export default function App() {
     setSelected(null);
   }, [canSelectSpots]);
 
-  // convenient map from numeric spotId -> spot
   const spotBySpotId = useMemo(() => {
     const m = new Map();
     for (const lvl of levels) {
-      for (const s of lvl.spots) m.set(s.spotId, s);
+      for (const s of lvl.spots) {
+        m.set(s.spotId, s);
+      }
     }
     return m;
   }, [levels]);
@@ -90,7 +96,6 @@ export default function App() {
     [levels],
   );
 
-  // 1) Load layout (spots) din DB
   useEffect(() => {
     (async () => {
       const spots = await apiGet("/parking/spots");
@@ -101,22 +106,13 @@ export default function App() {
       }));
 
       for (const s of spots) {
-        // backend: levelId este 1..3 => în UI: 0..2
         const levelIndex = (s.levelId ?? 1) - 1;
         if (!grouped[levelIndex]) continue;
 
         grouped[levelIndex].spots.push({
-          // păstrăm tot ce vine din API (x,y,z,w,h,rot)
           ...s,
-
-          // IMPORTANT: în proiectul tău, Spot/label/selection folosesc spot.id
-          // noi îl setăm la cod (L1, R2 etc.)
           id: s.code,
-
-          // păstrăm spotId numeric pentru mapare status
           spotId: s.spotId,
-
-          // status inițial
           status: "free",
         });
       }
@@ -125,25 +121,22 @@ export default function App() {
     })().catch(console.error);
   }, []);
 
-  // 2) Load projection când se schimbă intervalul.
-  // În live mode facem refresh periodic la 10s cu fereastră glisantă now -> now+60m.
   useEffect(() => {
-    // dacă încă nu avem spoturi, nu apelăm
     if (!hasSpots) return;
 
     setProjectionReady(false);
 
     (async () => {
       const requestId = ++projectionRequestRef.current;
+
       const effectiveStart = isLiveMode ? new Date() : start;
       const effectiveEnd = isLiveMode
         ? new Date(effectiveStart.getTime() + 60 * 60 * 1000)
         : end;
 
-      const startStr = toLocalISOStringNoZ(effectiveStart); // FĂRĂ Z (timezone fix)
+      const startStr = toLocalISOStringNoZ(effectiveStart);
       const endStr = toLocalISOStringNoZ(effectiveEnd);
 
-      // Backend projection accepts reservation/subscription mode.
       const projectionMode =
         mode === "subscription" ? "subscription" : "reservation";
 
@@ -156,7 +149,6 @@ export default function App() {
 
       const map = new Map(projection.map((p) => [p.spotId, p.status]));
 
-      // Ignore late responses from older requests to prevent status flicker.
       if (requestId !== projectionRequestRef.current) return;
 
       setLevels((prev) =>
@@ -173,9 +165,24 @@ export default function App() {
     })().catch(console.error);
   }, [start, end, refreshTick, isLiveMode, mode, subscriptionPlan, hasSpots]);
 
-  // 3) When selection changes, notify React Native (WebView) if present
   useEffect(() => {
     if (!selected) return;
+
+    const selectedSpot = spotBySpotId.get(selected.spotId);
+    if (!selectedSpot) {
+      setSelected(null);
+      return;
+    }
+
+    if (!canSelectSpots) {
+      setSelected(null);
+      return;
+    }
+  }, [selected, spotBySpotId, canSelectSpots]);
+
+  useEffect(() => {
+    if (!selected) return;
+
     const spot = spotBySpotId.get(selected.spotId);
     if (!spot) return;
 
@@ -183,6 +190,7 @@ export default function App() {
       type: "spot_selected",
       code: spot.id,
       spotId: spot.spotId,
+      level: selected.level,
       mode,
       subscriptionPlan,
       start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
@@ -253,6 +261,7 @@ export default function App() {
 
         {levels.map((lvl, idx) => {
           const y = idx * FLOOR_CLEAR;
+
           const visible = canSelectSpots
             ? idx === visibleLevel
             : isolate
@@ -269,24 +278,10 @@ export default function App() {
               dim={!isolate && idx !== activeLevel}
               canSelectSpots={canSelectSpots && projectionReady}
               selected={selected}
-              setSelected={(spotSelection) =>
-                setSelected((prev) => {
-                  if (
-                    prev &&
-                    prev.level === idx &&
-                    prev.spotId === spotSelection.spotId
-                  ) {
-                    return null;
-                  }
-
-                  setActiveLevel(idx);
-                  return {
-                    level: idx,
-                    spotId: spotSelection.spotId,
-                    code: spotSelection.code,
-                  };
-                })
-              }
+              setSelected={(nextSelected) => {
+                setActiveLevel(idx);
+                setSelected(nextSelected);
+              }}
             />
           );
         })}

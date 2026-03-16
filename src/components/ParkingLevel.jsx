@@ -24,6 +24,7 @@ function ExteriorWalls({
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(FLOOR_W / 5, FLOOR_CLEAR / 5);
   }
+
   const wallHeight = FLOOR_CLEAR - SLAB_T;
   const wallThickness = 0.5;
 
@@ -67,6 +68,7 @@ function ExteriorWalls({
           const end = Math.min(FLOOR_W, openingCenter + half);
           const L = start;
           const R = FLOOR_W - end;
+
           return (
             <group>
               {L > 0.01 && <BackWallSegment xCenter={L / 2} len={L} />}
@@ -102,6 +104,7 @@ function ExteriorWalls({
           const end = Math.min(FLOOR_H, openingCenter + half);
           const S = start;
           const N = FLOOR_H - end;
+
           return (
             <group>
               {S > 0.01 && <RightWallSegment zCenter={S / 2} len={S} />}
@@ -129,8 +132,6 @@ function ExteriorWalls({
 }
 
 function spotNumberLabel(spotId) {
-  // pentru "L1", "R12" -> "1", "12"
-  // dacă nu e formatul ăsta, arată tot id-ul
   if (typeof spotId !== "string") return String(spotId);
   const m = spotId.match(/\d+/);
   return m ? m[0] : spotId;
@@ -146,6 +147,7 @@ function ParkingSpotNumbers({ y, spots }) {
           y + FLOOR_CLEAR / 2,
           isTopRow ? 0.4 : FLOOR_H - 0.4,
         ];
+
         return (
           <Text
             key={`num-${spot.id}`}
@@ -165,6 +167,7 @@ function ParkingSpotNumbers({ y, spots }) {
 
 function TrafficArrows({ y, texture }) {
   const arrowPositionsX = [10, 35];
+
   return (
     <group>
       {arrowPositionsX.map((x) =>
@@ -180,6 +183,7 @@ function TrafficArrows({ y, texture }) {
           </mesh>
         )),
       )}
+
       {arrowPositionsX.map((x) =>
         [FLOOR_H / 2 + 2.5, FLOOR_H / 2 + 5.0].map((z, i) => (
           <mesh
@@ -211,31 +215,42 @@ function Columns({
   const COL_SIZE = size;
   const BASE_SIZE = size + baseExtra;
   const EDGE_MARGIN = COL_SIZE / 2 + 0.4;
+
   const topRow = spots
     .filter((s) => s.y < FLOOR_H / 2)
     .sort((a, b) => a.x - b.x);
+
   const botRow = spots
     .filter((s) => s.y >= FLOOR_H / 2)
     .sort((a, b) => a.x - b.x);
+
   const topEdge = topRow.length
     ? Math.max(...topRow.map((s) => s.y + s.h))
     : FLOOR_H / 2 - 3;
+
   const botEdge = botRow.length
     ? Math.min(...botRow.map((s) => s.y))
     : FLOOR_H / 2 + 3;
+
   const zTop = topEdge + aisleBuffer + COL_SIZE / 2;
   const zBot = botEdge - aisleBuffer - COL_SIZE / 2;
+
   const left = Math.max(EDGE_MARGIN, 7);
   const right = Math.min(FLOOR_W - EDGE_MARGIN, FLOOR_W - 7);
   const firstX = left + (((offset % spacing) + spacing) % spacing);
+
   const gridXs = [];
   for (let x = firstX; x <= right; x += spacing) gridXs.push(x);
+
   const marginX = COL_SIZE / 2 + 0.25;
   const spansTop = topRow.map((s) => [s.x - marginX, s.x + s.w + marginX]);
   const spansBot = botRow.map((s) => [s.x - marginX, s.x + s.w + marginX]);
+
   const isForbidden = (x, spans) => spans.some(([a, b]) => x >= a && x <= b);
+
   const snapToFree = (x, spans) => {
     if (!isForbidden(x, spans)) return x;
+
     const MAX_STEPS = 3;
     for (let step = 1; step <= MAX_STEPS; step++) {
       const L = x - step * spacing;
@@ -243,12 +258,15 @@ function Columns({
       if (L >= left && !isForbidden(L, spans)) return L;
       if (R <= right && !isForbidden(R, spans)) return R;
     }
+
     return THREE.MathUtils.clamp(x, left, right);
   };
+
   const xsTop = gridXs.map((x) => snapToFree(x, spansTop));
   const xsBot = gridXs.map((x) => snapToFree(x, spansBot));
   const h = FLOOR_CLEAR - SLAB_T;
   const baseHeight = 1.2;
+
   const Pillar = ({ pos }) => (
     <group position={pos}>
       <mesh
@@ -264,6 +282,7 @@ function Columns({
           opacity={opacity}
         />
       </mesh>
+
       <mesh castShadow receiveShadow position-y={baseHeight / 2}>
         <boxGeometry args={[BASE_SIZE, baseHeight, BASE_SIZE]} />
         <meshStandardMaterial
@@ -273,6 +292,7 @@ function Columns({
       </mesh>
     </group>
   );
+
   return (
     <group>
       {xsTop.map((x, i) => (
@@ -299,6 +319,7 @@ function DashedLine({
   const total = xEnd - xStart;
   const segmentLen = dashLength + gapLength;
   const count = Math.floor(total / segmentLen);
+
   for (let i = 0; i < count; i++) {
     const x0 = xStart + i * segmentLen;
     const centerX = x0 + dashLength / 2;
@@ -309,6 +330,7 @@ function DashedLine({
       </mesh>,
     );
   }
+
   return <group>{parts}</group>;
 }
 
@@ -350,6 +372,7 @@ export default function ParkingLevel({
   setSelected,
 }) {
   if (!visible) return null;
+
   const opacity = dim ? 0.7 : 1;
 
   const [wallTexture, hazardTexture, arrowTexture] = useTexture([
@@ -491,6 +514,7 @@ export default function ParkingLevel({
             <boxGeometry args={[1.2, 0.01, 0.08]} />
             <meshStandardMaterial color="white" />
           </mesh>
+
           <mesh
             position={[
               FLOOR_W + GATE_OFFSET_X - 0.5,
@@ -534,12 +558,16 @@ export default function ParkingLevel({
 
       <LaneMarkings y={y + SLAB_T / 2 + 0.01} />
       <TrafficArrows y={y + SLAB_T / 2 + 0.1} texture={arrowTexture} />
+      <ParkingSpotNumbers y={y} spots={spots} />
 
       {spots.map((s) => {
         const isSelected =
-          selected && selected.level === index && selected.spotId === s.spotId;
+          !!selected &&
+          selected.level === index &&
+          selected.spotId === s.spotId;
+
         const canToggleSelection =
-          canSelectSpots && s.status === "free" && (!selected || isSelected);
+          canSelectSpots && (s.status === "free" || isSelected);
 
         return (
           <Spot
@@ -551,7 +579,20 @@ export default function ParkingLevel({
             onSelect={
               canToggleSelection
                 ? () => {
-                    setSelected({ spotId: s.spotId, code: s.id });
+                    if (
+                      selected &&
+                      selected.level === index &&
+                      selected.spotId === s.spotId
+                    ) {
+                      setSelected(null);
+                      return;
+                    }
+
+                    setSelected({
+                      level: index,
+                      spotId: s.spotId,
+                      code: s.id,
+                    });
                   }
                 : undefined
             }
