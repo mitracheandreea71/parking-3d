@@ -293,31 +293,6 @@ export default function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      {!isLiveMode && (
-        <div
-          style={{
-            position: "fixed",
-            top: 12,
-            right: 12,
-            zIndex: 20,
-            background: "rgba(10,14,26,0.92)",
-            color: "#e2e8f4",
-            border: "1px solid #1e293b",
-            borderRadius: 10,
-            padding: "6px 10px",
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.2,
-          }}
-        >
-          {mode === "reservation"
-            ? "Parcare rezervare"
-            : mode === "subscription"
-              ? `Parcare abonament${subscriptionPlan ? ` (${subscriptionPlan})` : ""}`
-              : "Parcare projection"}
-        </div>
-      )}
-
       {!projectionReady && hasSpots && (
         <div
           style={{
