@@ -18,7 +18,9 @@ export default function Spot({
   );
 
   // Albastru apare doar pentru locul selectat; restul locurilor rămân pe culoarea implicită.
-  const canRenderSelected = isSelected && String(spot.status) === "free";
+  const canRenderSelected =
+    isSelected &&
+    (String(spot.status) === "free" || String(spot.status) === "limited");
   const fillColor = canRenderSelected
     ? SELECT_FILL
     : colorForStatus(spot.status);

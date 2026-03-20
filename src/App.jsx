@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+// Adaugă adresa WebSocket a backendului tău aici
+const WS_URL = process.env.REACT_APP_WS_URL || "ws://localhost:3001/ws";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
@@ -32,6 +34,45 @@ function readQueryString(paramName) {
 }
 
 export default function App() {
+  // WebSocket ref pentru a păstra conexiunea
+  const wsRef = useRef(null);
+  // Real-time: conectare la WebSocket și ascultare evenimente
+  useEffect(() => {
+    // Deschide conexiunea doar dacă nu există deja
+    if (wsRef.current) return;
+    const ws = new window.WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      // Poți trimite un mesaj de handshake dacă e nevoie
+      // ws.send(JSON.stringify({ type: "subscribe", topic: "parking" }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "parking.projection.changed") {
+          // Poți adăuga logică suplimentară pentru a verifica intervalul dacă vrei optimizare
+          setRefreshTick((prev) => prev + 1);
+        }
+      } catch (e) {
+        // Ignoră mesaje non-JSON
+      }
+    };
+
+    ws.onerror = (e) => {
+      // Poți loga sau trata erorile de conexiune
+    };
+
+    ws.onclose = () => {
+      wsRef.current = null;
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, []);
   const modeParam = (readQueryString("mode") || "projection").toLowerCase();
 
   const mode =
@@ -181,9 +222,10 @@ export default function App() {
     const level = levels.find((lvl) => lvl.id === selected.level);
     const spot = level?.spots.find((s) => s.id === selected.code);
     const exists = !!spot;
-    const isStillFree = spot?.status === "free";
+    const isStillSelectable =
+      spot?.status === "free" || spot?.status === "limited";
 
-    if (!exists || !isStillFree || !canSelectSpots) {
+    if (!exists || !isStillSelectable || !canSelectSpots) {
       setSelected(null);
     }
   }, [selected, levels, canSelectSpots]);
@@ -219,6 +261,8 @@ export default function App() {
         code: spot.id,
         spotId: spot.spotId,
         level: selected.level,
+        status: spot.status,
+        extensionBlocked: spot.status === "limited",
         mode,
         subscriptionPlan,
         start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),

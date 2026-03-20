@@ -529,9 +529,10 @@ export default function ParkingLevel({
         const isSelected =
           !!selected && selected.level === index && selected.code === s.id;
 
-        // Poți selecta doar locurile libere, sau dacă sunt deja selectate (pentru deselect)
+        // Poți selecta locurile free/limited, sau dacă sunt deja selectate (pentru deselect)
         const canToggleSelection =
-          canSelectSpots && (s.status === "free" || isSelected);
+          canSelectSpots &&
+          (s.status === "free" || s.status === "limited" || isSelected);
 
         return (
           <Spot
