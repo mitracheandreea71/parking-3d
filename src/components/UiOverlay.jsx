@@ -23,15 +23,6 @@ export default function UiOverlay({
         lineHeight: 1.5,
         border: "1px solid #1e293b",
         minWidth: 200,
-        [
-          { color: "#10b981", text: "Verde = liber" },
-          { color: "#9ca3af", text: "Gri = disponibil, dar fără prelungire" },
-          { color: "#ef4444", text: "Roșu = indisponibil pe interval" },
-        ].map((item) => (
-          fontSize: 11,
-          letterSpacing: 1,
-          textTransform: "uppercase",
-        }}
       >
         Etaje
       </div>
