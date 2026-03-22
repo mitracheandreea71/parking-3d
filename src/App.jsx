@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-// Adaugă adresa WebSocket a backendului tău aici
-const WS_URL = process.env.REACT_APP_WS_URL || "ws://localhost:3001/ws";
+import { connectSocket, disconnectSocket, onEvent } from "./lib/ws";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 
@@ -34,45 +33,22 @@ function readQueryString(paramName) {
 }
 
 export default function App() {
-  // WebSocket ref pentru a păstra conexiunea
-  const wsRef = useRef(null);
-  // Real-time: conectare la WebSocket și ascultare evenimente
+  // Socket.io-client pentru realtime
   useEffect(() => {
-    // Deschide conexiunea doar dacă nu există deja
-    if (wsRef.current) return;
-    const ws = new window.WebSocket(WS_URL);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      // Poți trimite un mesaj de handshake dacă e nevoie
-      // ws.send(JSON.stringify({ type: "subscribe", topic: "parking" }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "parking.projection.changed") {
-          // Poți adăuga logică suplimentară pentru a verifica intervalul dacă vrei optimizare
+    const socket = connectSocket();
+    const handler = (data) => {
+      // parking.projection.changed: doar dacă există interval selectat
+      if (data?.type === "parking.projection.changed") {
+        if (start && end) {
           setRefreshTick((prev) => prev + 1);
         }
-      } catch (e) {
-        // Ignoră mesaje non-JSON
       }
     };
-
-    ws.onerror = (e) => {
-      // Poți loga sau trata erorile de conexiune
-    };
-
-    ws.onclose = () => {
-      wsRef.current = null;
-    };
-
+    onEvent("parking.projection.changed", handler);
     return () => {
-      ws.close();
-      wsRef.current = null;
+      disconnectSocket();
     };
-  }, []);
+  }, [start, end]);
   const modeParam = (readQueryString("mode") || "projection").toLowerCase();
 
   const mode =
@@ -274,7 +250,16 @@ export default function App() {
 
     try {
       if (window.ReactNativeWebView?.postMessage) {
-        window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+        // Trimite status, extensionBlocked, spotId, level corect
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({
+            ...payload,
+            status: payload.status,
+            extensionBlocked: payload.extensionBlocked,
+            spotId: payload.spotId,
+            level: payload.level,
+          }),
+        );
       }
     } catch (e) {
       console.error("postMessage failed", e);
