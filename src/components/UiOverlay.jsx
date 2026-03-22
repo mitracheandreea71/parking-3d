@@ -23,9 +23,9 @@ export default function UiOverlay({
         lineHeight: 1.5,
         border: "1px solid #1e293b",
         minWidth: 200,
-      >
-        Etaje
-      </div>
+      }}
+    >
+      <div style={{ marginBottom: 8, fontWeight: 700 }}>Etaje</div>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         {[0, 1, 2].map((i) => (
           <button
