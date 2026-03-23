@@ -85,15 +85,7 @@ export default function App() {
   const lastLocalSelectionAtRef = useRef(0);
   const [projectionReady, setProjectionReady] = useState(false);
 
-  useEffect(() => {
-    if (!isLiveMode) return;
-
-    const intervalId = window.setInterval(() => {
-      setRefreshTick((prev) => prev + 1);
-    }, 10000);
-
-    return () => window.clearInterval(intervalId);
-  }, [isLiveMode]);
+  // Eliminat intervalul periodic pentru live mode. Actualizarea se face doar pe socket.
 
   useEffect(() => {
     if (canSelectSpots) return;
@@ -107,31 +99,36 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const spots = await apiGet("/parking/spots");
+      try {
+        const spots = await apiGet("/parking/spots");
+        console.log("[PARKING] /parking/spots response:", spots);
 
-      const grouped = Array.from({ length: LEVELS }, (_, i) => ({
-        id: i,
-        spots: [],
-      }));
+        const grouped = Array.from({ length: LEVELS }, (_, i) => ({
+          id: i,
+          spots: [],
+        }));
 
-      for (const s of spots) {
-        const levelIndex = (s.levelId ?? 1) - 1;
-        if (!grouped[levelIndex]) continue;
+        for (const s of spots) {
+          const levelIndex = (s.levelId ?? 1) - 1;
+          if (!grouped[levelIndex]) continue;
 
-        const spotWidth = Number(s.w ?? 0);
-        const mirroredX = FLOOR_W - Number(s.x) - spotWidth;
+          const spotWidth = Number(s.w ?? 0);
+          const mirroredX = FLOOR_W - Number(s.x) - spotWidth;
 
-        grouped[levelIndex].spots.push({
-          ...s,
-          x: mirroredX,
-          id: s.code,
-          spotId: s.spotId,
-          status: s.status ?? "free",
-        });
+          grouped[levelIndex].spots.push({
+            ...s,
+            x: mirroredX,
+            id: s.code,
+            spotId: s.spotId,
+            status: s.status ?? "free",
+          });
+        }
+
+        setLevels(grouped);
+      } catch (err) {
+        console.error("[PARKING] Eroare la /parking/spots:", err);
       }
-
-      setLevels(grouped);
-    })().catch(console.error);
+    })();
   }, []);
 
   useEffect(() => {
@@ -146,6 +143,14 @@ export default function App() {
     const projectionMode =
       mode === "subscription" ? "subscription" : "reservation";
 
+    console.log("[PARKING] /parking/projection params:", {
+      mode: projectionMode,
+      start: toLocalISOStringNoZ(startDate),
+      end: toLocalISOStringNoZ(endDate),
+      subscriptionPlan,
+      extendMinutes: 60,
+    });
+
     (async () => {
       try {
         const projection = await apiPost("/parking/projection", {
@@ -155,6 +160,7 @@ export default function App() {
           subscriptionPlan,
           extendMinutes: 60,
         });
+        console.log("[PARKING] /parking/projection response:", projection);
 
         if (cancelled || projectionRequestRef.current !== requestId) return;
 
@@ -173,7 +179,7 @@ export default function App() {
         setProjectionReady(true);
       } catch (e) {
         if (!cancelled) {
-          console.error("projection fetch failed", e);
+          console.error("[PARKING] projection fetch failed", e);
         }
       }
     })();
