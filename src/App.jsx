@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { connectSocket, disconnectSocket, onEvent } from "./lib/ws";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -34,21 +34,7 @@ function readQueryString(paramName) {
 
 export default function App() {
   // Socket.io-client pentru realtime
-  useEffect(() => {
-    const socket = connectSocket();
-    const handler = (data) => {
-      // parking.projection.changed: doar dacă există interval selectat
-      if (data?.type === "parking.projection.changed") {
-        if (start && end) {
-          setRefreshTick((prev) => prev + 1);
-        }
-      }
-    };
-    onEvent("parking.projection.changed", handler);
-    return () => {
-      disconnectSocket();
-    };
-  }, [start, end]);
+
   const modeParam = (readQueryString("mode") || "projection").toLowerCase();
 
   const mode =
@@ -72,10 +58,8 @@ export default function App() {
   const [isolate, setIsolate] = useState(false);
   const [selected, setSelected] = useState(null); // { level, spotId, code }
 
-  const [start, setStart] = useState(
-    () => readQueryDate("start") ?? new Date(),
-  );
-  const [end, setEnd] = useState(
+  const [start] = useState(() => readQueryDate("start") ?? new Date());
+  const [end] = useState(
     () => readQueryDate("end") ?? new Date(Date.now() + 60 * 60 * 1000),
   );
 
@@ -85,7 +69,22 @@ export default function App() {
   const lastLocalSelectionAtRef = useRef(0);
   const [projectionReady, setProjectionReady] = useState(false);
 
-  // Eliminat intervalul periodic pentru live mode. Actualizarea se face doar pe socket.
+  useEffect(() => {
+    connectSocket();
+
+    const handler = () => {
+      if (start && end) {
+        setRefreshTick((prev) => prev + 1);
+      }
+    };
+
+    const off = onEvent("parking.projection.changed", handler);
+
+    return () => {
+      off?.();
+      disconnectSocket();
+    };
+  }, [start, end]);
 
   useEffect(() => {
     if (canSelectSpots) return;
@@ -363,44 +362,46 @@ export default function App() {
       <Canvas
         camera={{ position: [FLOOR_W * 0.55, 22, FLOOR_H * 1.8], fov: 50 }}
       >
-        <hemisphereLight args={["#ffffff", "#9ca3af", 0.35]} />
-        <directionalLight position={[60, 60, 20]} intensity={0.7} />
-        <pointLight
-          position={[FLOOR_W * 0.5, 4, FLOOR_H * 0.5]}
-          intensity={0.2}
-          distance={70}
-        />
+        <Suspense fallback={null}>
+          <hemisphereLight args={["#ffffff", "#9ca3af", 0.35]} />
+          <directionalLight position={[60, 60, 20]} intensity={0.7} />
+          <pointLight
+            position={[FLOOR_W * 0.5, 4, FLOOR_H * 0.5]}
+            intensity={0.2}
+            distance={70}
+          />
 
-        {levels.map((lvl, idx) => {
-          const y = idx * FLOOR_CLEAR;
+          {levels.map((lvl, idx) => {
+            const y = idx * FLOOR_CLEAR;
 
-          const isolateTargetLevel = canSelectSpots
-            ? visibleLevel
-            : activeLevel;
-          const visible = isolate ? idx === isolateTargetLevel : true;
+            const isolateTargetLevel = canSelectSpots
+              ? visibleLevel
+              : activeLevel;
+            const visible = isolate ? idx === isolateTargetLevel : true;
 
-          return (
-            <ParkingLevel
-              key={idx}
-              index={idx}
-              y={y}
-              spots={lvl.spots}
-              visible={visible}
-              dim={!isolate && idx !== activeLevel}
-              canSelectSpots={canSelectSpots && projectionReady}
-              selected={selected}
-              setSelected={(nextSelected) => {
-                lastLocalSelectionAtRef.current = Date.now();
-                if (nextSelected?.level != null) {
-                  setActiveLevel(nextSelected.level);
-                }
-                setSelected(nextSelected);
-              }}
-            />
-          );
-        })}
+            return (
+              <ParkingLevel
+                key={idx}
+                index={idx}
+                y={y}
+                spots={lvl.spots}
+                visible={visible}
+                dim={!isolate && idx !== activeLevel}
+                canSelectSpots={canSelectSpots && projectionReady}
+                selected={selected}
+                setSelected={(nextSelected) => {
+                  lastLocalSelectionAtRef.current = Date.now();
+                  if (nextSelected?.level != null) {
+                    setActiveLevel(nextSelected.level);
+                  }
+                  setSelected(nextSelected);
+                }}
+              />
+            );
+          })}
 
-        <OrbitControls makeDefault />
+          <OrbitControls makeDefault />
+        </Suspense>
       </Canvas>
     </div>
   );

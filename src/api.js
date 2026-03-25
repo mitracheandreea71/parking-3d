@@ -1,13 +1,27 @@
 import { api } from "./lib/api";
 
+// Token handling: prefer sessionStorage, never persist in localStorage
+let memoryToken = null;
 function getToken() {
   const url = new URL(window.location.href);
   const tokenFromUrl = url.searchParams.get("token");
   if (tokenFromUrl) {
-    localStorage.setItem("access_token", tokenFromUrl);
+    // Store in sessionStorage and memory only
+    sessionStorage.setItem("access_token", tokenFromUrl);
+    memoryToken = tokenFromUrl;
+    // Clean token from URL
+    url.searchParams.delete("token");
+    window.history.replaceState({}, document.title, url.pathname + url.search);
     return tokenFromUrl;
   }
-  return localStorage.getItem("access_token");
+  // Prefer memory, then sessionStorage
+  if (memoryToken) return memoryToken;
+  const sessionToken = sessionStorage.getItem("access_token");
+  if (sessionToken) {
+    memoryToken = sessionToken;
+    return sessionToken;
+  }
+  return null;
 }
 
 export async function apiGet(path) {

@@ -20,4 +20,10 @@ export function disconnectSocket() {
 export function onEvent(event, handler) {
   if (!socket) throw new Error("Socket not connected");
   socket.on(event, handler);
+
+  return () => {
+    if (socket) {
+      socket.off(event, handler);
+    }
+  };
 }

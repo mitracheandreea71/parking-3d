@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import Spot from "./Spot";
@@ -337,15 +338,23 @@ export default function ParkingLevel({
   selected,
   setSelected,
 }) {
-  if (!visible) return null;
-
-  const opacity = dim ? 0.7 : 1;
-
   const [wallTexture, hazardTexture, arrowTexture] = useTexture([
     "/textures/concrete_wall.jpg",
     "/textures/hazard_stripes.jpg",
     "/textures/arrow.jpg",
   ]);
+
+  // Setează wrapping și repeat DOAR când textura există
+  useEffect(() => {
+    if (wallTexture) {
+      wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+      wallTexture.repeat.set(FLOOR_W / 5, FLOOR_CLEAR / 5);
+    }
+  }, [wallTexture]);
+
+  if (!visible) return null;
+
+  const opacity = dim ? 0.7 : 1;
 
   const RIGHT_OPENING_WIDTH = 12;
   const RIGHT_OPENING_CENTER = FLOOR_H / 2;

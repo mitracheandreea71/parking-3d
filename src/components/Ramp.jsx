@@ -22,7 +22,7 @@ function DashedLineOnRamp({
         <mesh key={i} position={[x0, 0.006, 0]}>
           <boxGeometry args={[dashLength, 0.01, width]} />
           <meshStandardMaterial color={color} />
-        </mesh>
+        </mesh>,
       );
     }
     return meshes;
@@ -141,7 +141,7 @@ export function CurvedLinkRamp({
 
   samples = 80,
 }) {
-  const rise = (toLevel - fromLevel) * (FLOOR_CLEAR - SLAB_T);
+  // rise nefolosit (calcul: (toLevel - fromLevel) * (FLOOR_CLEAR - SLAB_T))
   const yTop = fromLevel * FLOOR_CLEAR;
   const yBot = toLevel * FLOOR_CLEAR;
 
@@ -165,8 +165,8 @@ export function CurvedLinkRamp({
       new THREE.Vector3(
         last.x + dir.x * s,
         last.y + dir.y * s,
-        last.z + dir.z * s
-      )
+        last.z + dir.z * s,
+      ),
     );
   }
 
