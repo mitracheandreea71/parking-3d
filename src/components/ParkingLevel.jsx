@@ -178,6 +178,7 @@ function Columns({
   size = 0.5,
   baseExtra = 0.12,
   aisleBuffer = 0.9,
+  centerOffset = 0,
 }) {
   const COL_SIZE = size;
   const BASE_SIZE = size + baseExtra;
@@ -199,8 +200,8 @@ function Columns({
     ? Math.min(...botRow.map((s) => s.y))
     : FLOOR_H / 2 + 3;
 
-  const zTop = topEdge + aisleBuffer + COL_SIZE / 2;
-  const zBot = botEdge - aisleBuffer - COL_SIZE / 2;
+  const zTop = topEdge + aisleBuffer + COL_SIZE / 2 + centerOffset;
+  const zBot = botEdge - aisleBuffer - COL_SIZE / 2 - centerOffset;
 
   const left = Math.max(EDGE_MARGIN, 7);
   const right = Math.min(FLOOR_W - EDGE_MARGIN, FLOOR_W - 7);
@@ -528,7 +529,8 @@ export default function ParkingLevel({
         spacing={9.6}
         offset={3}
         size={0.5}
-        aisleBuffer={0.9}
+        aisleBuffer={8.2}
+        centerOffset={2.2}
       />
 
       <LaneMarkings y={y + SLAB_T / 2 + 0.01} />
