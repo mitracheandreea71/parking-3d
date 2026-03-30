@@ -8,7 +8,6 @@ import ParkingLevel from "./components/ParkingLevel";
 import { LEVELS, FLOOR_W, FLOOR_H, FLOOR_CLEAR } from "./config";
 
 import { apiGet, apiPost } from "./api";
-import { toLocalISOStringNoZ } from "./time";
 
 function readQueryDate(paramName) {
   try {
@@ -144,8 +143,8 @@ export default function App() {
 
     console.log("[PARKING] /parking/projection params:", {
       mode: projectionMode,
-      start: toLocalISOStringNoZ(startDate),
-      end: toLocalISOStringNoZ(endDate),
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
       subscriptionPlan,
       extendMinutes: 60,
     });
@@ -154,8 +153,8 @@ export default function App() {
       try {
         const projection = await apiPost("/parking/projection", {
           mode: projectionMode,
-          start: toLocalISOStringNoZ(startDate),
-          end: toLocalISOStringNoZ(endDate),
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
           subscriptionPlan,
           extendMinutes: 60,
         });
@@ -246,10 +245,11 @@ export default function App() {
         extensionBlocked: spot.status === "limited",
         mode,
         subscriptionPlan,
-        start: toLocalISOStringNoZ(isLiveMode ? new Date() : start),
-        end: toLocalISOStringNoZ(
-          isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end,
-        ),
+        start: (isLiveMode ? new Date() : start).toISOString(),
+        end: (isLiveMode
+          ? new Date(Date.now() + 60 * 60 * 1000)
+          : end
+        ).toISOString(),
       };
     }
 
