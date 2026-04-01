@@ -71,15 +71,26 @@ export default function App() {
   useEffect(() => {
     connectSocket();
 
+    let timeoutId = null;
+
     const handler = () => {
-      if (start && end) {
-        setRefreshTick((prev) => prev + 1);
+      if (!start || !end) return;
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
+
+      timeoutId = window.setTimeout(() => {
+        setRefreshTick((prev) => prev + 1);
+      }, 250);
     };
 
     const off = onEvent("parking.projection.changed", handler);
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       off?.();
       disconnectSocket();
     };
@@ -300,8 +311,6 @@ export default function App() {
 
           if (same) return prev;
 
-          // După un tap local, păstrăm selecția locală pentru scurt timp
-          // ca să evităm overwrite prematur din polling.
           const localSelectionIsFresh =
             !!prev && Date.now() - lastLocalSelectionAtRef.current < 4000;
           if (localSelectionIsFresh) return prev;
@@ -309,18 +318,18 @@ export default function App() {
           return normalized;
         });
       } catch {
-        // Ignorăm erori tranzitorii de rețea la sync.
+        // ignoră erori tranzitorii
       }
     };
 
+    // doar o sincronizare la intrare, nu polling continuu
     syncSelectedFromServer();
-    const intervalId = window.setInterval(syncSelectedFromServer, 1500);
 
     return () => {
       disposed = true;
-      window.clearInterval(intervalId);
     };
   }, [canSelectSpots, projectionReady]);
+
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
