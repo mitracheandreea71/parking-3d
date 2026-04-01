@@ -110,7 +110,6 @@ export default function App() {
     (async () => {
       try {
         const spots = await apiGet("/parking/spots");
-        console.log("[PARKING] /parking/spots response:", spots);
 
         const grouped = Array.from({ length: LEVELS }, (_, i) => ({
           id: i,
@@ -152,14 +151,6 @@ export default function App() {
     const projectionMode =
       mode === "subscription" ? "subscription" : "reservation";
 
-    console.log("[PARKING] /parking/projection params:", {
-      mode: projectionMode,
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
-      subscriptionPlan,
-      extendMinutes: 60,
-    });
-
     (async () => {
       try {
         const projection = await apiPost("/parking/projection", {
@@ -169,7 +160,6 @@ export default function App() {
           subscriptionPlan,
           extendMinutes: 60,
         });
-        console.log("[PARKING] /parking/projection response:", projection);
 
         if (cancelled || projectionRequestRef.current !== requestId) return;
 
