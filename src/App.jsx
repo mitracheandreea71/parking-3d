@@ -46,6 +46,10 @@ export default function App() {
           : "projection";
 
   const subscriptionPlan = readQueryString("subscriptionPlan");
+  const excludeReservationIdRaw = readQueryString("excludeReservationId");
+  const excludeReservationId = excludeReservationIdRaw
+    ? Number(excludeReservationIdRaw)
+    : null;
   const canSelectSpots = mode === "reservation" || mode === "subscription";
   const isLiveMode = mode === "live";
 
@@ -159,6 +163,7 @@ export default function App() {
           end: endDate.toISOString(),
           subscriptionPlan,
           extendMinutes: 60,
+          excludeReservationId,
         });
 
         if (cancelled || projectionRequestRef.current !== requestId) return;
@@ -195,6 +200,7 @@ export default function App() {
     isLiveMode,
     refreshTick,
     canSelectSpots,
+    excludeReservationId,
   ]);
 
   useEffect(() => {
@@ -270,7 +276,16 @@ export default function App() {
     } catch (e) {
       console.error("postMessage failed", e);
     }
-  }, [selected, levels, start, end, isLiveMode, mode, subscriptionPlan]);
+  }, [
+    selected,
+    levels,
+    start,
+    end,
+    isLiveMode,
+    mode,
+    subscriptionPlan,
+    excludeReservationId,
+  ]);
 
   useEffect(() => {
     if (!canSelectSpots || !projectionReady) return;
