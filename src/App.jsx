@@ -76,10 +76,48 @@ export default function App() {
     const socket = connectSocket();
 
     let timeoutId = null;
-    let intervalId = null;
 
-    const handler = () => {
+    const applySensorStatus = (payload) => {
+      const spotId = Number(payload?.spotId);
+      const sensorStatus = payload?.status;
+
+      if (
+        payload?.source !== "sensor" ||
+        !Number.isFinite(spotId) ||
+        !["occupied", "free"].includes(sensorStatus)
+      ) {
+        return false;
+      }
+
+      setLevels((prev) =>
+        prev.map((lvl) => ({
+          ...lvl,
+          spots: lvl.spots.map((spot) =>
+            Number(spot.spotId) === spotId
+              ? {
+                  ...spot,
+                  status: sensorStatus === "occupied" ? "blocked" : "free",
+                  reason:
+                    sensorStatus === "occupied"
+                      ? "sensor_reports_occupied"
+                      : null,
+                  extensionBlocked: sensorStatus === "occupied",
+                }
+              : spot,
+          ),
+        })),
+      );
+
+      setProjectionReady(true);
+      return true;
+    };
+
+    const handler = (payload) => {
       if (!start || !end) return;
+
+      if (applySensorStatus(payload)) {
+        return;
+      }
 
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -95,14 +133,9 @@ export default function App() {
     socket.on("connect", handler);
     socket.on("reconnect", handler);
 
-    intervalId = window.setInterval(handler, 1000);
-
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
-      }
-      if (intervalId) {
-        clearInterval(intervalId);
       }
       off?.();
       offDashboard?.();
