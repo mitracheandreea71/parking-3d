@@ -350,6 +350,41 @@ export default function App() {
     };
   }, [canSelectSpots, projectionReady]);
 
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.data?.type !== "parking.availability.updated") return;
+
+      const availability = Array.isArray(event.data.availability)
+        ? event.data.availability
+        : [];
+      const bySpotId = new Map(
+        availability.map((item) => [Number(item.spotId ?? item.id), item]),
+      );
+
+      setLevels((prev) =>
+        prev.map((lvl) => ({
+          ...lvl,
+          spots: lvl.spots.map((spot) => {
+            const next = bySpotId.get(Number(spot.spotId));
+            if (!next) return spot;
+
+            return {
+              ...spot,
+              status: next.status ?? "free",
+              reason: next.reason ?? null,
+              extensionBlocked: next.extensionBlocked ?? false,
+            };
+          }),
+        })),
+      );
+
+      setProjectionReady(true);
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
