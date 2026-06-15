@@ -4,15 +4,8 @@ export default function UiOverlay({
   isolate,
   setIsolate,
   selected,
-  stats,
   onClear,
 }) {
-  const counters = [
-    { label: "Libere", value: stats?.free ?? 0, color: "#10b981" },
-    { label: "Ocupate", value: stats?.occupied ?? 0, color: "#ef4444" },
-    { label: "Rezervate", value: stats?.reserved ?? 0, color: "#f59e0b" },
-  ];
-
   return (
     <div
       style={{
@@ -33,49 +26,6 @@ export default function UiOverlay({
       }}
     >
       <div style={{ marginBottom: 8, fontWeight: 700 }}>Etaje</div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 6,
-          marginBottom: 10,
-        }}
-      >
-        {counters.map((counter) => (
-          <div
-            key={counter.label}
-            style={{
-              minWidth: 0,
-              border: "1px solid #1e293b",
-              borderRadius: 8,
-              background: "#0f172a",
-              padding: "6px 7px",
-            }}
-          >
-            <div
-              style={{
-                color: counter.color,
-                fontWeight: 800,
-                fontSize: 17,
-                lineHeight: 1,
-              }}
-            >
-              {counter.value}
-            </div>
-            <div
-              style={{
-                color: "#94a3b8",
-                fontSize: 10,
-                fontWeight: 700,
-                marginTop: 4,
-                textTransform: "uppercase",
-              }}
-            >
-              {counter.label}
-            </div>
-          </div>
-        ))}
-      </div>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
         {[0, 1, 2].map((i) => (
           <button

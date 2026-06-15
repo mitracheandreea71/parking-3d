@@ -353,29 +353,6 @@ export default function App() {
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
-  const occupancyStats = useMemo(() => {
-    const allSpots = levels.flatMap((level) => level.spots);
-
-    return allSpots.reduce(
-      (stats, spot) => {
-        const status = String(spot.status ?? "free");
-
-        stats.total += 1;
-
-        if (status === "free") {
-          stats.free += 1;
-        } else if (status === "blocked") {
-          stats.occupied += 1;
-        } else {
-          stats.reserved += 1;
-        }
-
-        return stats;
-      },
-      { total: 0, free: 0, occupied: 0, reserved: 0 },
-    );
-  }, [levels]);
-
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#ffffff" }}>
       {!projectionReady && hasSpots && (
@@ -404,7 +381,6 @@ export default function App() {
         isolate={isolate}
         setIsolate={setIsolate}
         selected={selected}
-        stats={occupancyStats}
         onClear={() => {
           lastLocalSelectionAtRef.current = Date.now();
           setSelected(null);
