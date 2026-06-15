@@ -73,9 +73,10 @@ export default function App() {
   const [projectionReady, setProjectionReady] = useState(false);
 
   useEffect(() => {
-    connectSocket();
+    const socket = connectSocket();
 
     let timeoutId = null;
+    let intervalId = null;
 
     const handler = () => {
       if (!start || !end) return;
@@ -90,12 +91,23 @@ export default function App() {
     };
 
     const off = onEvent("parking.projection.changed", handler);
+    const offDashboard = onEvent("dashboard.changed", handler);
+    socket.on("connect", handler);
+    socket.on("reconnect", handler);
+
+    intervalId = window.setInterval(handler, 1000);
 
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
       off?.();
+      offDashboard?.();
+      socket.off("connect", handler);
+      socket.off("reconnect", handler);
       disconnectSocket();
     };
   }, [start, end]);
@@ -168,14 +180,17 @@ export default function App() {
 
         if (cancelled || projectionRequestRef.current !== requestId) return;
 
-        const bySpotId = new Map(projection.map((p) => [p.spotId, p.status]));
+        const bySpotId = new Map(projection.map((p) => [p.spotId, p]));
 
         setLevels((prev) =>
           prev.map((lvl) => ({
             ...lvl,
             spots: lvl.spots.map((s) => ({
               ...s,
-              status: bySpotId.get(s.spotId) ?? "free",
+              status: bySpotId.get(s.spotId)?.status ?? "free",
+              reason: bySpotId.get(s.spotId)?.reason ?? null,
+              extensionBlocked:
+                bySpotId.get(s.spotId)?.extensionBlocked ?? false,
             })),
           })),
         );
@@ -338,9 +353,31 @@ export default function App() {
   const visibleLevel = canSelectSpots
     ? (selected?.level ?? activeLevel)
     : activeLevel;
+  const occupancyStats = useMemo(() => {
+    const allSpots = levels.flatMap((level) => level.spots);
+
+    return allSpots.reduce(
+      (stats, spot) => {
+        const status = String(spot.status ?? "free");
+
+        stats.total += 1;
+
+        if (status === "free") {
+          stats.free += 1;
+        } else if (status === "blocked") {
+          stats.occupied += 1;
+        } else {
+          stats.reserved += 1;
+        }
+
+        return stats;
+      },
+      { total: 0, free: 0, occupied: 0, reserved: 0 },
+    );
+  }, [levels]);
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div style={{ width: "100vw", height: "100vh", background: "#ffffff" }}>
       {!projectionReady && hasSpots && (
         <div
           style={{
@@ -367,6 +404,7 @@ export default function App() {
         isolate={isolate}
         setIsolate={setIsolate}
         selected={selected}
+        stats={occupancyStats}
         onClear={() => {
           lastLocalSelectionAtRef.current = Date.now();
           setSelected(null);
@@ -375,8 +413,10 @@ export default function App() {
 
       <Canvas
         camera={{ position: [FLOOR_W * 0.55, 22, FLOOR_H * 1.8], fov: 50 }}
+        style={{ background: "#ffffff" }}
       >
         <Suspense fallback={null}>
+          <color attach="background" args={["#ffffff"]} />
           <hemisphereLight args={["#ffffff", "#9ca3af", 0.35]} />
           <directionalLight position={[60, 60, 20]} intensity={0.7} />
           <pointLight

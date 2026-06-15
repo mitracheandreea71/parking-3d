@@ -15,7 +15,7 @@ export const LANE_W = 6;
 export const RAIL_H = 1.2;
 
 export const API_URL = getRequiredEnv("VITE_API_URL");
-export const WS_URL = import.meta.env.VITE_WS_URL;
+export const WS_URL = import.meta.env.VITE_WS_URL || API_URL;
 
 console.log("ENV VITE_API_URL =", import.meta.env.VITE_API_URL);
 console.log("ENV VITE_WS_URL =", import.meta.env.VITE_WS_URL);
