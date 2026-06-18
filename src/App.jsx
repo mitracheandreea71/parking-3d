@@ -68,6 +68,9 @@ export default function App() {
 
   const [refreshTick, setRefreshTick] = useState(0);
   const projectionRequestRef = useRef(0);
+  const projectionBySpotIdRef = useRef(new Map());
+  const layoutLoadedRef = useRef(false);
+  const projectionLoadedRef = useRef(false);
   const lastSelectionFingerprintRef = useRef(null);
   const lastLocalSelectionAtRef = useRef(0);
   const [projectionReady, setProjectionReady] = useState(false);
@@ -172,16 +175,23 @@ export default function App() {
           const spotWidth = Number(s.w ?? 0);
           const mirroredX = FLOOR_W - Number(s.x) - spotWidth;
 
+          const projection = projectionBySpotIdRef.current.get(s.spotId);
           grouped[levelIndex].spots.push({
             ...s,
             x: mirroredX,
             id: s.code,
             spotId: s.spotId,
-            status: s.status ?? "free",
+            status: projection?.status ?? s.status ?? "free",
+            reason: projection?.reason ?? null,
+            extensionBlocked: projection?.extensionBlocked ?? false,
           });
         }
 
+        layoutLoadedRef.current = true;
         setLevels(grouped);
+        if (projectionLoadedRef.current) {
+          setProjectionReady(true);
+        }
       } catch (err) {
         console.error("[PARKING] Eroare la /parking/spots:", err);
       }
@@ -189,10 +199,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!hasSpots) return;
-
     let cancelled = false;
     const requestId = ++projectionRequestRef.current;
+    projectionLoadedRef.current = false;
+    setProjectionReady(false);
 
     const startDate = isLiveMode ? new Date() : start;
     const endDate = isLiveMode ? new Date(Date.now() + 60 * 60 * 1000) : end;
@@ -202,7 +212,7 @@ export default function App() {
 
     (async () => {
       try {
-        const projection = await apiPost("/parking/projection", {
+        const projectionPromise = apiPost("/parking/projection", {
           mode: projectionMode,
           start: startDate.toISOString(),
           end: endDate.toISOString(),
@@ -210,10 +220,49 @@ export default function App() {
           extendMinutes: 60,
           excludeReservationId,
         });
+        const forecastPromise = apiPost("/parking/occupancy-forecast/summary", {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          bucketMinutes: 60,
+        });
 
+        void forecastPromise
+          .then((forecast) => {
+            if (
+              cancelled ||
+              projectionRequestRef.current !== requestId ||
+              !forecast ||
+              !window.ReactNativeWebView?.postMessage
+            ) {
+              return;
+            }
+
+            window.ReactNativeWebView.postMessage(
+              JSON.stringify({
+                type: "projection_forecast",
+                forecast,
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+              }),
+            );
+          })
+          .catch((error) => {
+            if (!cancelled) {
+              console.error("[PARKING] forecast fetch failed", error);
+            }
+          });
+
+        const projection = await projectionPromise;
         if (cancelled || projectionRequestRef.current !== requestId) return;
 
-        const bySpotId = new Map(projection.map((p) => [p.spotId, p]));
+        const projectionSpots = Array.isArray(projection?.spots)
+          ? projection.spots
+          : [];
+        const bySpotId = new Map(
+          projectionSpots.map((p) => [p.spotId, p]),
+        );
+        projectionBySpotIdRef.current = bySpotId;
+        projectionLoadedRef.current = true;
 
         setLevels((prev) =>
           prev.map((lvl) => ({
@@ -228,7 +277,9 @@ export default function App() {
           })),
         );
 
-        setProjectionReady(true);
+        if (layoutLoadedRef.current) {
+          setProjectionReady(true);
+        }
       } catch (e) {
         if (!cancelled) {
           console.error("[PARKING] projection fetch failed", e);
@@ -240,7 +291,6 @@ export default function App() {
       cancelled = true;
     };
   }, [
-    hasSpots,
     mode,
     subscriptionPlan,
     start,
